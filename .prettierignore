@@ -1,0 +1,29 @@
+# dependencies
+node_modules
+
+# build
+.next
+dist
+
+# lock files
+bun.lock
+package-lock.json
+yarn.lock
+
+# husky
+.husky
+
+# assets
+public
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+
+# misc
+.prettierignore
+.env*
+.gitignore
+
+*.md
