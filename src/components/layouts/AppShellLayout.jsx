@@ -8,9 +8,9 @@ export const AppShellLayout = ({ user, children }) => {
       <AppSidebar />
       <SidebarInset>
         <Header user={user} />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-4">
-            <main className="p-4">{children}</main>
+        <div className="flex flex-1 flex-col z-1">
+          <div className="@container/main flex flex-1 flex-col gap-6">
+            <main className="p-6">{children}</main>
           </div>
         </div>
       </SidebarInset>

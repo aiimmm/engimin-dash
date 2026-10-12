@@ -1,10 +1,12 @@
 "use client";
 
+import TopLoader from "@/components/elements/TopLoader";
 import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { NextThemeProviders } from "./NextThemeProviders";
+import { BackgroundSheetSyncProvider } from "./BackgroundSheetSyncProvider";
+import { NextThemeProvider } from "./NextThemeProvider";
 
 export function AppProviders({ children }) {
   const [queryClient] = useState(
@@ -17,16 +19,14 @@ export function AppProviders({ children }) {
       }),
   );
   return (
-    <NextThemeProviders
-      attribute="class"
-      defaultTheme="dark"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <NextThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>{children}</TooltipProvider>
+        <TopLoader />
+        <TooltipProvider>
+          <BackgroundSheetSyncProvider>{children}</BackgroundSheetSyncProvider>
+        </TooltipProvider>
         <Toaster />
       </QueryClientProvider>
-    </NextThemeProviders>
+    </NextThemeProvider>
   );
 }

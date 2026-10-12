@@ -1,9 +1,11 @@
 "use client";
 
+import { apiClient } from "@/lib/api/client";
+import { setPendingToast } from "@/hooks/usePendingToast";
 import { cn } from "@/lib/utils";
-import { Logout02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { LogOutIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTopLoader } from "nextjs-toploader";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import {
@@ -14,20 +16,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { toast } from "../ui/toast";
 
 export const LogoutButton = () => {
   const router = useRouter();
+  const topLoader = useTopLoader();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function logout() {
     setLoggingOut(true);
+    topLoader.start();
     try {
       await apiClient.post("/auth/logout");
+      setPendingToast({ type: "success", title: "Berhasil logout. Sampai jumpa!" });
       router.replace("/login");
       router.refresh();
     } catch (error) {
-      toast.error(error?.message || "Failed to log out, please try again.");
+      topLoader.done();
+      toast.add({ type: "error", title: error?.message || "Gagal logout, silakan coba lagi." });
       setLoggingOut(false);
     }
   }
@@ -36,16 +43,13 @@ export const LogoutButton = () => {
     <>
       <Button
         className={cn(
-          "group/menu cursor-pointer w-full flex items-center justify-start gap-2 text-sm transition-all duration-200 hover:gap-3 px-2.5",
+          "group/menu cursor-pointer w-full flex items-center justify-start gap-2 text-sm transition-all duration-200 hover:gap-3",
           "bg-transparent text-red-600 dark:text-red-500 hover:bg-red-500/10",
         )}
         onClick={() => setLogoutOpen(true)}
         size="lg"
       >
-        <HugeiconsIcon
-          icon={Logout02Icon}
-          className="size-4! transition-transform duration-200 group-hover/menu:-rotate-12"
-        />
+        <LogOutIcon className="transition-transform duration-200 group-hover/menu:-rotate-12" />
         Logout
       </Button>
       <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>

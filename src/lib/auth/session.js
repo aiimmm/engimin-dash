@@ -8,7 +8,6 @@ import "server-only";
 
 import { getSessionSecret } from "@/lib/config";
 import { cookies } from "next/headers";
-import { connection } from "next/server";
 import crypto from "node:crypto";
 
 export const SESSION_COOKIE = "wo_session";
@@ -27,26 +26,23 @@ export function encryptSession(payload) {
   return Buffer.concat([iv, tag, encrypted]).toString("base64url");
 }
 
-export function decryptSession(value, nowTime) {
+export function decryptSession(value) {
   try {
     const data = Buffer.from(value, "base64url");
     const decipher = crypto.createDecipheriv("aes-256-gcm", encryptionKey(), data.subarray(0, 12));
     decipher.setAuthTag(data.subarray(12, 28));
     const decrypted = Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]);
     const session = JSON.parse(decrypted.toString("utf8"));
-    const currentTime = typeof nowTime === "number" ? nowTime : Date.now();
-    return session.expiresAt > currentTime ? session : null;
+    return session.expiresAt > Date.now() ? session : null;
   } catch {
     return null;
   }
 }
 
 export async function getSession() {
-  await connection();
   const store = await cookies();
   const value = store.get(SESSION_COOKIE)?.value;
-  if (!value) return null;
-  return decryptSession(value, Date.now());
+  return value ? decryptSession(value) : null;
 }
 
 export function sessionCookie(value) {

@@ -1,13 +1,14 @@
 import { LogoutButton } from "@/components/elements/LogoutButton";
 import { ThemeSwitch } from "@/components/elements/ThemeSwitch";
 import {
+  Analytics01Icon,
   CalendarCheckIn01Icon,
-  Clock01Icon,
+  CalendarClockIcon,
+  CalendarSyncIcon,
   Home07Icon,
   KeyframesDoubleAddIcon,
   MapsLocation01Icon,
-  PropertyAddIcon,
-  TransactionHistoryIcon,
+  PackageAddIcon,
 } from "@hugeicons/core-free-icons";
 
 export const NAVIGATION_MENU = [
@@ -25,7 +26,7 @@ export const NAVIGATION_MENU = [
       {
         label: "Action Dates",
         href: "/dashboard/action-dates",
-        icon: TransactionHistoryIcon,
+        icon: CalendarSyncIcon,
         title: "Action Dates",
         isShow: true,
         type: "Pages",
@@ -33,8 +34,16 @@ export const NAVIGATION_MENU = [
       {
         label: "Created Dates",
         href: "/dashboard/created-dates",
-        icon: PropertyAddIcon,
+        icon: PackageAddIcon,
         title: "Created Dates",
+        isShow: true,
+        type: "Pages",
+      },
+      {
+        label: "Monitoring",
+        href: "/dashboard/engineer-monitoring",
+        icon: Analytics01Icon,
+        title: "Monitoring",
         isShow: true,
         type: "Pages",
       },
@@ -54,7 +63,7 @@ export const NAVIGATION_MENU = [
       {
         label: "Appointment",
         href: "/dashboard/appointment",
-        icon: Clock01Icon,
+        icon: CalendarClockIcon,
         title: "Appointment",
         isShow: true,
         type: "Pages",
@@ -77,6 +86,32 @@ export const NAVIGATION_MENU = [
       },
     ],
   },
+  // {
+  //   groupLabel: "Dangerous Workspace",
+  //   items: [
+  //     {
+  //       label: "Break Contract",
+  //       href: "/dashboard/dangerous/break-contract",
+  //       icon: SignatureIcon,
+  //       title: "Break Contract",
+  //       isShow: true,
+  //       type: "Pages",
+  //     },
+  //   ],
+  // },
+  // {
+  //   groupLabel: "Monitoring Workspace",
+  //   items: [
+  //     {
+  //       label: "Assigned Yesterday",
+  //       href: "/dashboard/monitoring/assigned-yesterday",
+  //       icon: LayoutDashboardIcon,
+  //       title: "Assigned Yesterday",
+  //       isShow: true,
+  //       type: "Pages",
+  //     },
+  //   ],
+  // },
   {
     groupLabel: "Settings",
     items: [
@@ -94,4 +129,15 @@ export const NAVIGATION_MENU = [
       },
     ],
   },
+  // {
+  //   groupLabel: "Settings",
+  //   items: [
+  //     {
+  //       label: "Logout",
+  //       isShow: true,
+  //       type: "Component",
+  //       component: LogoutButton,
+  //     },
+  //   ],
+  // },
 ];

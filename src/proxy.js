@@ -4,9 +4,9 @@ const SESSION_COOKIE = "wo_session";
 
 export function proxy(request) {
   const authenticated = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
-  const isLogin = request.nextUrl.pathname === "/auth/login";
+  const isLogin = request.nextUrl.pathname === "/login";
   if (!authenticated && !isLogin) {
-    const login = new URL("/auth/login", request.url);
+    const login = new URL("/login", request.url);
     login.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(login);
   }
@@ -15,5 +15,5 @@ export function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/account", "/authlogin"],
+  matcher: ["/dashboard/:path*", "/account", "/login"],
 };

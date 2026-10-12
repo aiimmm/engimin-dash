@@ -1,1 +1,2 @@
-export { DashboardModules, default } from "./DashboardModules";
+export * from "./components/DashboardModules";
+export { default } from "./components/DashboardModules";

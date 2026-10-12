@@ -1,13 +1,11 @@
 "use client";
 
 import { NAVIGATION_MENU } from "@/commons/constants/Menu";
-import { toast } from "@/components/ui/toast";
 import { apiClient } from "@/lib/api/client";
-import { useSession } from "@/lib/auth/useSession";
 import { cn, getInitials } from "@/lib/utils";
-import { ArrowRightDoubleIcon, CogIcon } from "@hugeicons/core-free-icons";
+import { ArrowRightBigIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ActivityIcon, LogOutIcon, ServerIcon } from "lucide-react";
+import { ActivityIcon, BotIcon, LogOutIcon, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,15 +40,10 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "../ui/sidebar";
+import { toast } from "../ui/toast";
 
-export const Header = ({ className, user: propUser, ...props }) => {
+export const Header = ({ className, user, ...props }) => {
   const router = useRouter();
-  const { user: sessionUser } = useSession();
-  const user = propUser || sessionUser;
-
-  const displayName = user?.name || user?.username || "Admin User";
-  const displayEmail = user?.email || "email@travelio.com";
-
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -58,14 +51,10 @@ export const Header = ({ className, user: propUser, ...props }) => {
     setLoggingOut(true);
     try {
       await apiClient.post("/auth/logout");
-      router.replace("/auth/login");
+      router.replace("/login");
       router.refresh();
     } catch (error) {
-      toast.add({
-        title: "Gagal Logout",
-        description: error?.message || "Gagal keluar, silakan coba lagi.",
-        type: "error",
-      });
+      toast.add({ type: "error", title: error?.message || "Failed to log out, please try again." });
       setLoggingOut(false);
     }
   }
@@ -73,18 +62,18 @@ export const Header = ({ className, user: propUser, ...props }) => {
   return (
     <header
       className={cn(
-        "sticky top-0 z-10 flex items-center gap-2 border-b bg-sidebar px-4 py-1 backdrop-blur-2xl",
+        "sticky top-0 z-10 flex items-center gap-2 border-b bg-sidebar text-sidebar-foreground pl-6 pr-5 py-3 backdrop-blur-2xl",
         className,
       )}
       {...props}
     >
       <div className="flex flex-1 items-center gap-2">
-        <SidebarTrigger />
-        <Separator orientation="vertical" className="mr-2" />
+        <SidebarTrigger className="-ml-2" />
+        <Separator orientation="vertical" className="mr-2 bg-foreground/15" />
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/dashboard" className="text-sidebar-foreground">
+              <BreadcrumbLink href="/dashboard" className="text-foreground">
                 Dashboard
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -95,33 +84,29 @@ export const Header = ({ className, user: propUser, ...props }) => {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button
-              variant="ghost"
-              className="gap-2 px-0 h-12 hover:bg-transparent! dark:hover:transparent!"
-            >
-              <div className="hidden flex-col items-end gap-1 md:flex">
+            <button className="gap-2 flex items-center">
+              <div className="hidden flex-col items-end gap-1.25 sm:flex">
                 <span className="text-right text-[12px] font-medium leading-none tracking-tight">
-                  {displayName}
+                  {user?.name}
                 </span>
-                <Badge className="h-4 px-1 py-0 text-[10px]">Admin Engineering</Badge>
+                <Badge className="h-4 px-1 py-0.5 text-[10px]">Admin Engineering</Badge>
               </div>
-
-              <Avatar>
-                <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
-                  {getInitials(displayName)}
-                </AvatarFallback>
+              <Avatar className="size-10">
+                <div className="bg-transparent p-0.5 aspect-square rounded-full border border-primary">
+                  <AvatarFallback className="bg-primary text-xs font-bold text-background tracking-tight">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </div>
               </Avatar>
-            </Button>
+            </button>
           }
         />
-        <DropdownMenuContent className="w-60" align="end">
+        <DropdownMenuContent className="w-60" align="end" sideOffset={9} alignOffset={4}>
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="p-2.5 font-normal">
+            <DropdownMenuLabel className="p-2 font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none">{displayName}</p>
-                <p className="text-xs leading-none text-muted-foreground truncate">
-                  {displayEmail}
-                </p>
+                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-xs leading-none text-muted-foreground">Admin Engineering</p>
               </div>
             </DropdownMenuLabel>
           </DropdownMenuGroup>
@@ -162,7 +147,7 @@ export const Brand = () => {
         <div className="flex items-center gap-3 px-2 p-1.5">
           <div className="size-10 rounded-full flex items-center justify-center shrink-0 border dark:border-white border-black">
             <div className="bg-foreground rounded-full p-1">
-              <HugeiconsIcon icon={CogIcon} className="aspect-square size-6 text-background" />
+              <BotIcon className="aspect-square size-6 text-background" />
             </div>
           </div>
           <div>
@@ -179,7 +164,6 @@ export const Navigation = () => {
   const pathname = usePathname();
 
   const isActive = (href) => {
-    // Tambahkan baris ini untuk mencegah error jika href undefined
     if (!href) return false;
 
     const base = href.split("#")[0];
@@ -194,13 +178,10 @@ export const Navigation = () => {
       {NAVIGATION_MENU.map((group) => (
         <SidebarGroup key={group.groupLabel}>
           <SidebarGroupLabel>{group.groupLabel}</SidebarGroupLabel>
-          <SidebarGroupContent className="flex flex-col gap-1 px-1">
+          <SidebarGroupContent className="flex flex-col gap-1">
             {group.items
               .filter((item) => item.isShow)
               .map((item) => {
-                const Icon = item.icon;
-
-                // Sekarang pemanggilan ini aman meski item.href undefined
                 const active = isActive(item.href);
 
                 // Pages
@@ -214,15 +195,16 @@ export const Navigation = () => {
                           <Link
                             href={item.href}
                             className={cn(
-                              "group/menu flex items-center gap-2 px-3! py-2 transition-all duration-200 hover:gap-3",
-                              active && "gap-3",
+                              "group/menu flex items-center gap-2 px-3 py-2 transition-all duration-200 hover:gap-3",
+                              active && "bg-sidebar-accent text-sidebar-accent-foreground gap-3",
                             )}
                           >
-                            {Icon && (
+                            {item.icon && (
                               <HugeiconsIcon
-                                icon={Icon}
+                                icon={item.icon}
+                                size={20}
                                 className={cn(
-                                  "size-4! transition-transform duration-200 group-hover/menu:-rotate-12",
+                                  "transition-transform duration-200 group-hover/menu:-rotate-12",
                                   active && "-rotate-12",
                                 )}
                               />
@@ -230,10 +212,10 @@ export const Navigation = () => {
                             <span className="flex-1">{item.label}</span>
                             {active && (
                               <HugeiconsIcon
-                                icon={ArrowRightDoubleIcon}
-                                className="size-4! opacity-70 animate-pulse"
+                                icon={ArrowRightBigIcon}
+                                size={16}
+                                className="opacity-70 animate-pulse"
                               />
-                              // <ArrowRightIcon className="size-4 opacity-60 animate-pulse" />
                             )}
                           </Link>
                         }

@@ -1,24 +1,15 @@
 // ============================================================================
-// APP / API / AUTH / SESSION — Current Session Route Handler
-// Purpose: Fetch current authenticated user session data safely
+// API Route — /api/auth/session (Session Checker Endpoint)
+// Purpose: Return currently authenticated user profile from encrypted iron-session
+// Used by: Global App Session Validator & Route Guards
 // ============================================================================
 
-import { getSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET() {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
-  }
-  return NextResponse.json({
-    authenticated: true,
-    user: {
-      userId: session.userId,
-      name: session.name,
-      username: session.username,
-      email: session.email,
-      isNeedChangePass: session.isNeedChangePass,
-    },
-  });
+  return session
+    ? NextResponse.json({ user: session.user })
+    : NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
 }

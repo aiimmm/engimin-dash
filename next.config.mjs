@@ -1,27 +1,12 @@
 /** @type {import('next').NextConfig} */
-
 const scriptPolicy =
   process.env.NODE_ENV === "development"
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
     : "script-src 'self' 'unsafe-inline'";
 
 const nextConfig = {
-  /* config options here */
-  experimental: {
-    agentFeedback: false,
-  },
-  cacheComponents: true,
-  partialPrefetching: true,
   reactCompiler: true,
   poweredByHeader: false,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
   async headers() {
     return [
       {

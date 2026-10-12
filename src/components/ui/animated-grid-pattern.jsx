@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 
@@ -61,10 +62,7 @@ export function AnimatedGridPattern({
 
   useEffect(() => {
     if (dimensions.width && dimensions.height) {
-      const timer = requestAnimationFrame(() => {
-        setSquares(generateSquares(numSquares));
-      });
-      return () => cancelAnimationFrame(timer);
+      setSquares(generateSquares(numSquares));
     }
   }, [dimensions.width, dimensions.height, generateSquares, numSquares]);
 

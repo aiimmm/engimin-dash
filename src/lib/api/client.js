@@ -17,9 +17,9 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && window.location.pathname !== "/auth/login") {
+    if (error.response?.status === 401 && window.location.pathname !== "/login") {
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign("/auth/login?expired=1");
+      window.location.assign("/login?expired=1");
     }
     const message =
       error.response?.data?.message || "An unexpected error occurred. Please try again later.";
