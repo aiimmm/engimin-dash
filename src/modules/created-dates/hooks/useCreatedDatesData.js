@@ -12,23 +12,28 @@ const EMPTY_ROWS = [];
 export function useCreatedDatesData() {
   const todayDate = useMemo(() => today(), []);
   const [selectedClusters, setSelectedClusters] = useState([]);
-  const dateRange = useMemo(() => ({ from: todayDate, to: todayDate }), [todayDate]);
+  // Default: hari ini s/d hari ini — user dapat mengubah lewat DatePickerWithRange
+  const [dateRange, setDateRange] = useState(() => ({
+    from: todayDate,
+    to: todayDate,
+  }));
   const knownIds = useRef(new Set());
 
   const query = useQuery({
-    queryKey: ["workorders-created-today", todayDate],
+    queryKey: ["workorders-created-today", dateRange.from, dateRange.to],
     queryFn: async () =>
       (
         await apiClient.get("/workorders", {
           params: {
             all: 1,
             createdToday: 1,
-            dateFrom: todayDate,
-            dateTo: todayDate,
+            dateFrom: dateRange.from,
+            dateTo: dateRange.to || dateRange.from,
           },
         })
       ).data,
     refetchInterval: 180_000,
+    enabled: Boolean(dateRange.from),
   });
 
   useEffect(() => {
@@ -54,6 +59,7 @@ export function useCreatedDatesData() {
   return {
     todayDate,
     dateRange,
+    setDateRange,
     selectedClusters,
     setSelectedClusters,
     query,

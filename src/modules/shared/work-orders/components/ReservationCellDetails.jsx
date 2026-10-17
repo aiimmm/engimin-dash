@@ -1,7 +1,6 @@
 import { Typography } from "@/components/elements/Typography";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CalendarDaysIcon, ExternalLinkIcon } from "lucide-react";
+import { Calendar03Icon, PhoneIcon, User02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 export function ReservationCellDetails({ row }) {
   const currentRes = row.original.activeReservation || row.original.latestReservation;
@@ -26,17 +25,41 @@ export function ReservationCellDetails({ row }) {
 
   return (
     <div className="space-y-1 text-center">
-      <div className="flex items-center justify-center gap-1 font-mono text-xs font-semibold">
-        <CalendarDaysIcon className="size-3 text-muted-foreground" />
+      <div className="flex items-center justify-center gap-1 font-medium text-xs">
+        <HugeiconsIcon icon={Calendar03Icon} className="size-3.5 text-muted-foreground" />
         <span>
           {ciFmt} – {coFmt}
         </span>
       </div>
-      {currentRes.guestName && (
-        <Typography as="p" className="text-[11px] text-muted-foreground truncate max-w-36">
-          {currentRes.guestName}
-        </Typography>
-      )}
+      <div>
+        {currentRes.genId && (
+          <Typography
+            as="p"
+            className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground truncate max-w-36"
+          >
+            <HugeiconsIcon icon={Calendar03Icon} className="size-3 text-muted-foreground" />
+            {currentRes.genId}
+          </Typography>
+        )}
+        {currentRes.guestName && (
+          <Typography
+            as="p"
+            className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground truncate max-w-36"
+          >
+            <HugeiconsIcon icon={User02Icon} className="size-3 text-muted-foreground" />
+            {currentRes.guestName}
+          </Typography>
+        )}
+        {currentRes.contactPhone && (
+          <Typography
+            as="p"
+            className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground truncate max-w-36"
+          >
+            <HugeiconsIcon icon={PhoneIcon} className="size-3 text-muted-foreground" />
+            {currentRes.contactPhone}
+          </Typography>
+        )}
+      </div>
     </div>
   );
 }

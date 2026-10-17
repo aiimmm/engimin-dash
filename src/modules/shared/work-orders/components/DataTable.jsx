@@ -37,10 +37,12 @@ import {
   DepartementIcon,
   MosqueLocationIcon,
   Refresh03Icon,
+  Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { flexRender, useTable } from "@tanstack/react-table";
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import { WorkOrderTableFeatures } from "./DataTableFeatures";
 import { ExtendDialog } from "./ExtendDialog";
@@ -107,7 +109,8 @@ export function DataTable({
   const selectedClusters = externalClusters !== undefined ? externalClusters : internalClusters;
   const setSelectedClusters = onSelectedClustersChange || setInternalClusters;
 
-  const [internalDics, setInternalDics] = useState(ALL_DICS);
+  // [] = "All" (tidak ada filter DIC spesifik), array isi = filter DIC tertentu
+  const [internalDics, setInternalDics] = useState([]);
   const selectedDics = externalDics !== undefined ? externalDics : internalDics;
   const setSelectedDics = onSelectedDicsChange || setInternalDics;
 
@@ -131,6 +134,9 @@ export function DataTable({
 
   const [extendOpen, setExtendOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+
+  const pathname = usePathname();
+  const isActionDatesPage = pathname === "/dashboard/action-dates";
 
   const clusters = useMemo(() => {
     const list = new Set();
@@ -291,9 +297,12 @@ export function DataTable({
   };
 
   const toggleDic = (dic) => {
-    setSelectedDics((prev) =>
-      prev.includes(dic) ? prev.filter((d) => d !== dic) : [...prev, dic],
-    );
+    setSelectedDics((prev) => {
+      // Jika DIC sudah ada → uncheck (hapus dari list)
+      const next = prev.includes(dic) ? prev.filter((d) => d !== dic) : [...prev, dic];
+      // Jika semua DIC terpilih atau tidak ada yang terpilih → kembali ke "All" (empty)
+      return next.length === 0 || next.length === ALL_DICS.length ? [] : next;
+    });
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   };
 
@@ -333,10 +342,11 @@ export function DataTable({
       <div className="flex items-center gap-2">
         <InputGroup className="w-full">
           <InputGroupAddon>
-            <SearchIcon className="size-4" />
+            <HugeiconsIcon icon={Search01Icon} className="size-4 text-muted-foreground" />
+            {/* <SearchIcon className="size-4" /> */}
           </InputGroupAddon>
           <InputGroupInput
-            placeholder="Cari WO, Unit, Engineer..."
+            placeholder="Cari di sini..."
             value={globalFilter ?? ""}
             onChange={(e) => {
               setGlobalFilter(e.target.value);
@@ -393,7 +403,7 @@ export function DataTable({
             filterWoByOwner !== "all" ||
             filterPostCharge !== "all" ||
             filterBreakContract !== "all" ||
-            selectedDics.length < ALL_DICS.length) && (
+            selectedDics.length > 0) && (
             <Button
               variant="destructive"
               onClick={() => {
@@ -405,7 +415,7 @@ export function DataTable({
                 setFilterPostCharge("all");
                 setFilterBreakContract("all");
                 setFilterInHouse("all");
-                setSelectedDics(ALL_DICS);
+                setSelectedDics([]);
                 setPagination((p) => ({ ...p, pageIndex: 0 }));
               }}
               className="text-xs gap-1 flex-1 lg:flex-none"
@@ -445,6 +455,19 @@ export function DataTable({
                       {c}
                     </DropdownMenuCheckboxItem>
                   ))}
+                  {selectedClusters.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <Button
+                        variant="default"
+                        size="xs"
+                        className="w-full text-xs"
+                        onClick={() => setSelectedClusters([])}
+                      >
+                        Reset Cluster
+                      </Button>
+                    </>
+                  )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -460,33 +483,54 @@ export function DataTable({
                   render={
                     <Button
                       variant="outline"
-                      className={`text-xs gap-1 w-full lg:w-auto ${selectedDics.length < ALL_DICS.length ? "border-primary text-primary" : ""}`}
+                      className={`text-xs gap-1 w-full lg:w-auto ${selectedDics.length > 0 ? "border-primary text-primary" : ""}`}
                     >
                       <HugeiconsIcon icon={DepartementIcon} className="size-3" />
                       Department
-                      {selectedDics.length < ALL_DICS.length && (
-                        <Badge variant="default" className="font-semibold text-[10px] h-4 px-1.5">
-                          {selectedDics.length || "All"}
-                        </Badge>
-                      )}
+                      <Badge variant="default" className="font-semibold text-[10px] h-4 px-1.5">
+                        {selectedDics.length || "All"}
+                      </Badge>
                       <ChevronDownIcon className="size-3" />
                     </Button>
                   }
                 />
                 <DropdownMenuContent align="start" className="w-52">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>Filter Department In Charge</DropdownMenuLabel>
+                    <DropdownMenuLabel>Filter Department In Charge:</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {ALL_DICS.map((dic) => (
-                      <DropdownMenuCheckboxItem
-                        key={dic}
-                        checked={selectedDics.includes(dic)}
-                        onCheckedChange={() => toggleDic(dic)}
-                        className="text-xs"
-                      >
-                        {dic}
-                      </DropdownMenuCheckboxItem>
-                    ))}
+                    {ALL_DICS.map((dic) => {
+                      const isEngineering = dic === "Engineering";
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={dic}
+                          checked={isActionDatesPage ? isEngineering : selectedDics.includes(dic)}
+                          disabled={isActionDatesPage && !isEngineering}
+                          onCheckedChange={() => {
+                            if (isActionDatesPage) return;
+                            toggleDic(dic);
+                          }}
+                          className="text-xs"
+                        >
+                          {dic}
+                        </DropdownMenuCheckboxItem>
+                      );
+                    })}
+                    {!isActionDatesPage && selectedDics.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <Button
+                          variant="default"
+                          size="xs"
+                          className="text-xs w-full"
+                          onClick={() => {
+                            setSelectedDics([]);
+                            setPagination((p) => ({ ...p, pageIndex: 0 }));
+                          }}
+                        >
+                          Reset DIC
+                        </Button>
+                      </>
+                    )}
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>

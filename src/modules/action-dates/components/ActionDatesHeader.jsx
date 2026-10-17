@@ -17,10 +17,11 @@ export const ActionDatesHeader = ({ query, dateRange, setDateRange }) => {
           </p>
         </div>
         <Typography as="h2" className="font-extrabold">
-          Action Dates Work Orders
+          Action Dates Overview
         </Typography>
         <Typography as="p" className="text-sm text-muted-foreground mt-1">
-          Menampilkan work orders berdasarkan rentang tanggal action date yang dipilih.
+          Ringkasan work orders yang dijadwalkan kemarin atau dalam rentang tanggal action date yang
+          dipilih.
         </Typography>
       </div>
 

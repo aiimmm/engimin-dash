@@ -1,14 +1,13 @@
+"use client";
+
+import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
 import { Typography } from "@/components/elements/Typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
-import { today } from "@/modules/shared/work-orders/lib";
-import { CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
-export const CreatedDatesHeader = ({ query }) => {
-  const todayStr = today();
-  const formattedToday = formatDate(todayStr);
-
+export const CreatedDatesHeader = ({ query, dateRange, setDateRange }) => {
   return (
     <div className="flex flex-col items-start xl:flex-row xl:items-end xl:justify-between gap-4">
       <div>
@@ -17,26 +16,26 @@ export const CreatedDatesHeader = ({ query }) => {
           Live Operation
         </Badge>
         <Typography as="h2" className="font-extrabold">
-          Today&apos;s Created Dates Overview
+          Created Dates Overview
         </Typography>
         <Typography as="p" className="text-sm text-muted-foreground mt-1">
-          Menampilkan work orders yang dibuat hari ini di seluruh cluster. Diperbarui secara
-          otomatis setiap 3 menit.
+          Ringkasan work orders yang dibuat hari ini atau dalam rentang tanggal yang dipilih.
         </Typography>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap">
-          <CalendarDaysIcon className="size-4 text-muted-foreground" />
-          <span>Today: {formattedToday}</span>
-        </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
         <Button
-          size="lg"
           variant="default"
           onClick={() => {
             if (!query.isFetching) query.refetch();
           }}
         >
-          <RefreshCwIcon className={query.isFetching ? "animate-spin" : ""} /> Refresh
+          <HugeiconsIcon
+            icon={Refresh01Icon}
+            className={`mr-0.5 size-4 ${query.isFetching ? "animate-spin" : ""}`}
+          />
+          <span>Refresh</span>
         </Button>
       </div>
     </div>

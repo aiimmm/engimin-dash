@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { useCreatedDatesData } from "../hooks/useCreatedDatesData";
 import { CreatedDatesHeader } from "./CreatedDatesHeader";
 import { CreatedDatesStats } from "./CreatedDatesStats";
@@ -8,14 +7,12 @@ import { CreatedDatesTable } from "./CreatedDatesTable";
 import { CreatedDatesPreviewReports } from "./CreatedDatesPreviewReports";
 
 export const CreatedDatesModules = () => {
-  const { query, rows, todayDate, selectedClusters, setSelectedClusters, stats } =
+  const { query, rows, dateRange, setDateRange, selectedClusters, setSelectedClusters, stats } =
     useCreatedDatesData();
-
-  const dateRange = useMemo(() => ({ from: todayDate, to: todayDate }), [todayDate]);
 
   return (
     <div className="space-y-4">
-      <CreatedDatesHeader query={query} />
+      <CreatedDatesHeader query={query} dateRange={dateRange} setDateRange={setDateRange} />
       <CreatedDatesStats stats={stats} />
       <CreatedDatesTable
         rows={rows}

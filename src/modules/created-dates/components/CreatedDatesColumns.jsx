@@ -1,5 +1,4 @@
 import { Typography } from "@/components/elements/Typography";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getWorkOrderTracingUrl, toTitleCase } from "@/lib/utils";
 import {
@@ -7,21 +6,18 @@ import {
   RoomStatus,
   WorkOrderStatus,
 } from "@/modules/shared/components/DashboardComponents";
-import { ReservationCellDetails } from "@/modules/shared/work-orders/components/ReservationCellDetails";
-import { createColumnHelper } from "@tanstack/react-table";
 import {
+  ApartmentIcon,
+  AppleReminderIcon,
   BedDoubleIcon,
-  Building2Icon,
-  CalendarDaysIcon,
-  CalendarIcon,
-  CheckCircle2Icon,
-  FileXIcon,
-  ReceiptIcon,
-  ShieldAlertIcon,
-  UserCheckIcon,
-  UserIcon,
-  WrenchIcon,
-} from "lucide-react";
+  CalendarCheckOut01Icon,
+  CalendarClockIcon,
+  DepartementIcon,
+  NoteIcon,
+  UserSettings01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { createColumnHelper } from "@tanstack/react-table";
 
 function fmtDate(value) {
   if (!value) return "—";
@@ -43,9 +39,9 @@ export const CreatedDatesColumns = helper.columns([
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="text-xs sm:text-sm px-0 font-semibold"
+        className="text-xs px-0 font-semibold"
       >
-        <WrenchIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+        <HugeiconsIcon icon={NoteIcon} className="mr-0.5 size-4 text-muted-foreground" />
         WO No & Note
       </Button>
     ),
@@ -72,12 +68,12 @@ export const CreatedDatesColumns = helper.columns([
       };
 
       return (
-        <div className="min-w-44 max-w-64 space-y-1">
+        <div className="w-full max-w-sm space-y-0.5">
           <div>
             <span
               onClick={handleWoClick}
               onDoubleClick={handleWoDoubleClick}
-              className="cursor-pointer select-text text-xs font-mono font-medium text-primary hover:underline"
+              className="cursor-pointer select-text text-xs font-mono font-medium hover:underline"
               title="Klik untuk select, double click untuk membuka"
             >
               {woNum}
@@ -86,7 +82,7 @@ export const CreatedDatesColumns = helper.columns([
 
           <Typography
             as="p"
-            className="select-none whitespace-normal text-xs text-muted-foreground line-clamp-2"
+            className="select-none whitespace-normal text-[10px] text-muted-foreground line-clamp-3"
           >
             {note}
           </Typography>
@@ -99,22 +95,40 @@ export const CreatedDatesColumns = helper.columns([
   helper.accessor("foRoomsId", {
     id: "Reservation",
     header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <CalendarDaysIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Reservation
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="text-xs px-0 font-semibold"
+      >
+        <HugeiconsIcon
+          icon={CalendarCheckOut01Icon}
+          className="mr-0.5 size-4 text-muted-foreground"
+        />
+        Reservation
+      </Button>
     ),
-    cell: ({ row }) => (
-      <div className="flex justify-center">
-        <ReservationCellDetails row={row} />
-      </div>
-    ),
+    // cell: ({ row }) => (
+    //   <div className="flex justify-center">
+    //     <ReservationCellDetails row={row} />
+    //   </div>
+    // ),
+    cell: ({ row }) => {
+      const reservation = row.original.activeReservation || row.original.latestReservation;
+      if (!reservation?.genId) return <span className="text-xs text-muted-foreground">—</span>;
+      return (
+        <div className="min-w-32">
+          <Typography as="p" className="font-medium text-xs mb-1 italic">
+            BookID: {reservation.genId}
+          </Typography>
+          <Typography as="p" className="text-[10px] text-muted-foreground">
+            Check-In: {fmtDate(reservation.checkinDate)}
+          </Typography>
+          <Typography as="p" className="mt-px text-[10px] text-muted-foreground">
+            Check-Out: {fmtDate(reservation.checkoutDate)}
+          </Typography>
+        </div>
+      );
+    },
     meta: { label: "Reservation" },
     sortingFn: "alphanumeric",
   }),
@@ -125,9 +139,9 @@ export const CreatedDatesColumns = helper.columns([
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold"
+          className="text-xs px-0 font-semibold"
         >
-          <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+          <HugeiconsIcon icon={CalendarClockIcon} className="mr-0.5 size-4 text-muted-foreground" />
           Action Date
         </Button>
       );
@@ -135,14 +149,28 @@ export const CreatedDatesColumns = helper.columns([
     meta: { label: "Action Date" },
     cell: ({ getValue }) => {
       const rawDate = getValue();
-      if (!rawDate) return <span className="text-xs">—</span>;
+
+      if (!rawDate) {
+        return <span className="text-xs">—</span>;
+      }
+
       const str = String(rawDate).trim();
       const datePart = str.substring(0, 10);
       const timePart = str.length > 10 ? str.substring(11, 16) : "";
-      const formattedDate = timePart ? `${datePart} — ${timePart}` : datePart;
+
+      // Parse tanggal sebagai tanggal lokal agar tidak bergeser timezone
+      const [year, month, day] = datePart.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      const hari = new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+      }).format(date);
+      const tanggal = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
+
       return (
-        <div className="flex justify-center">
-          <span className="text-xs font-mono">{formattedDate}</span>
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="text-xs capitalize">{hari},</span>
+          <span className="text-xs">{tanggal}</span>
+          <span className="text-xs">{timePart || "—"}</span>
         </div>
       );
     },
@@ -154,98 +182,159 @@ export const CreatedDatesColumns = helper.columns([
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="text-xs sm:text-sm px-0 font-semibold"
+        className="px-0 text-xs font-semibold"
       >
-        <BedDoubleIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+        <HugeiconsIcon icon={ApartmentIcon} className="mr-0.5 size-4 text-muted-foreground" />
         GenID — Tower — Room
       </Button>
     ),
-    cell: ({ row }) => (
-      <div className="min-w-44">
-        <Typography as="p" className="font-medium text-xs mb-1 italic">
-          GenID: {row.original.roomCode}
-        </Typography>
-        <Typography as="p" className="font-medium text-xs">
-          {row.original.towerName}
-        </Typography>
-        <Typography
-          as="p"
-          className="mt-0.75 flex items-center gap-1 text-[10px] text-muted-foreground"
-        >
-          <BedDoubleIcon className="size-3" />
-          {row.original.roomName}
-        </Typography>
-      </div>
-    ),
-    meta: { label: "Tower — Room" },
+    cell: ({ row }) => {
+      const data = row.original;
+      const isBreak = Boolean(data.isBreakContract);
+
+      const breakDate = data.breakContractDate || data.breakcontract_date;
+
+      return (
+        <div className="min-w-44 space-y-1">
+          <Typography as="p" className="mb-1 text-xs font-medium italic">
+            GenID: {data.roomCode || "—"}
+          </Typography>
+
+          <Typography as="p" className="text-xs font-medium">
+            {data.towerName || "—"}
+          </Typography>
+
+          <Typography as="p" className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <HugeiconsIcon icon={BedDoubleIcon} className="size-3 text-muted-foreground" />
+            {data.roomName || "—"}
+          </Typography>
+
+          {isBreak && (
+            <div className="flex flex-wrap items-center gap-1 text-[10px]">
+              <span className="text-red-600 dark:text-red-400">Break Contract:</span>
+
+              <Typography
+                as="span"
+                className="text-[10px] font-medium text-red-600 dark:text-red-400"
+              >
+                {breakDate && breakDate !== true ? fmtDate(breakDate) : "Yes"}
+              </Typography>
+            </div>
+          )}
+        </div>
+      );
+    },
+    meta: { label: "GenID — Tower — Room" },
     sortingFn: "text",
   }),
-  helper.accessor("roomStatus", {
-    id: "Room Status",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <BedDoubleIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Room Status
-        </Button>
-      </div>
-    ),
-    cell: ({ getValue }) => (
-      <div className="flex justify-center">
-        <RoomStatus status={getValue()} />
-      </div>
-    ),
-    meta: { label: "Room Status" },
-    sortingFn: "text",
-  }),
-  helper.accessor("isIncludeCloseOut", {
-    id: "Close Out Status",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <ShieldAlertIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Close Out Status
-        </Button>
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex justify-center">
-        <CloseOutStatus isCloseOut={row.original.isIncludeCloseOut} />
-      </div>
-    ),
-    meta: { label: "Close Out Status" },
-    sortingFn: "basic",
-  }),
-  helper.accessor("woStatus", {
-    id: "Status WO",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <CheckCircle2Icon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Status WO
-        </Button>
-      </div>
-    ),
-    cell: ({ getValue }) => (
-      <div className="flex justify-center">
-        <WorkOrderStatus status={getValue()} />
-      </div>
-    ),
-    meta: { label: "Status WO" },
-    sortingFn: "text",
-  }),
+
+  helper.accessor(
+    (row) => `${row.roomStatus ?? ""} ${row.isIncludeCloseOut ?? ""} ${row.woStatus ?? ""}`,
+    {
+      id: "WO Status",
+      header: ({ column }) => (
+        <div className="flex w-full justify-center">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="mx-auto px-0 text-xs font-semibold"
+          >
+            <HugeiconsIcon
+              icon={AppleReminderIcon}
+              className="mr-0.5 size-4 text-muted-foreground"
+            />
+            WO Status
+          </Button>
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex min-w-36 flex-col items-center gap-2">
+          {/* Work Order Status */}
+          <div className="flex items-center gap-2">
+            <WorkOrderStatus status={row.original.woStatus} />
+          </div>
+
+          {/* Room Status */}
+          <div className="flex items-center gap-2">
+            <RoomStatus status={row.original.roomStatus} />
+          </div>
+
+          {/* Close Out Status */}
+          <div className="flex items-center gap-2">
+            <CloseOutStatus isCloseOut={row.original.isIncludeCloseOut} />
+          </div>
+        </div>
+      ),
+      meta: { label: "WO Status" },
+      sortingFn: "text",
+    },
+  ),
+  // helper.accessor("roomStatus", {
+  //   id: "Room Status",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <BedDoubleIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         Room Status
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ getValue }) => (
+  //     <div className="flex justify-center">
+  //       <RoomStatus status={getValue()} />
+  //     </div>
+  //   ),
+  //   meta: { label: "Room Status" },
+  //   sortingFn: "text",
+  // }),
+  // helper.accessor("isIncludeCloseOut", {
+  //   id: "Close Out Status",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <ShieldAlertIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         Close Out Status
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ row }) => (
+  //     <div className="flex justify-center">
+  //       <CloseOutStatus isCloseOut={row.original.isIncludeCloseOut} />
+  //     </div>
+  //   ),
+  //   meta: { label: "Close Out Status" },
+  //   sortingFn: "basic",
+  // }),
+  // helper.accessor("woStatus", {
+  //   id: "Status WO",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <CheckCircle2Icon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         Status WO
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ getValue }) => (
+  //     <div className="flex justify-center">
+  //       <WorkOrderStatus status={getValue()} />
+  //     </div>
+  //   ),
+  //   meta: { label: "Status WO" },
+  //   sortingFn: "text",
+  // }),
   helper.accessor("engineer", {
     id: "Engineer",
     header: ({ column }) => {
@@ -253,9 +342,12 @@ export const CreatedDatesColumns = helper.columns([
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold"
+          className="text-xs px-0 font-semibold"
         >
-          <UserCheckIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={UserSettings01Icon}
+            className="mr-0.5 size-4 text-muted-foreground"
+          />
           Engineer
         </Button>
       );
@@ -264,12 +356,10 @@ export const CreatedDatesColumns = helper.columns([
       const value = getValue() || "";
       const isUnassigned = !value || String(value).toUpperCase().includes("UNASSIGNED");
       return (
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center">
           <span
-            className={`text-xs font-medium ${
-              isUnassigned
-                ? "text-red-700 dark:text-red-400"
-                : "text-emerald-700 dark:text-emerald-400"
+            className={`text-xs ${
+              isUnassigned ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
             }`}
           >
             {value ? toTitleCase(value) : "Unassigned"}
@@ -281,135 +371,139 @@ export const CreatedDatesColumns = helper.columns([
     sortingFn: "text",
   }),
   helper.accessor("department", {
-    id: "Department In Charge",
+    id: "Department",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="text-xs sm:text-sm px-0 font-semibold"
+        className="text-xs px-0 font-semibold"
       >
-        <Building2Icon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-        Department In Charge
+        <HugeiconsIcon icon={DepartementIcon} className="mr-0.5 size-4 text-muted-foreground" />
+        Department
       </Button>
     ),
-    cell: ({ getValue }) => <span className="text-xs capitalize">{getValue() || "—"}</span>,
-    meta: { label: "Department In Charge" },
+    cell: ({ getValue }) => (
+      <div className="flex justify-center items-center">
+        <span className="text-xs capitalize">{getValue() || "—"}</span>
+      </div>
+    ),
+    meta: { label: "Department" },
     sortingFn: "text",
   }),
-  helper.accessor("isWoManageByOwner", {
-    id: "WO By Owner",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <UserIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          WO By Owner
-        </Button>
-      </div>
-    ),
-    cell: ({ getValue, row }) => {
-      const val = getValue();
-      const rawVal = row.original.wo_manage_by_owner;
-      const isOwner =
-        Number(val) === 1 ||
-        Number(rawVal) === 1 ||
-        val === "1" ||
-        rawVal === "1" ||
-        val === true ||
-        rawVal === true;
+  // helper.accessor("isWoManageByOwner", {
+  //   id: "WO By Owner",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <UserIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         WO By Owner
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ getValue, row }) => {
+  //     const val = getValue();
+  //     const rawVal = row.original.wo_manage_by_owner;
+  //     const isOwner =
+  //       Number(val) === 1 ||
+  //       Number(rawVal) === 1 ||
+  //       val === "1" ||
+  //       rawVal === "1" ||
+  //       val === true ||
+  //       rawVal === true;
 
-      return (
-        <div className="flex justify-center">
-          {isOwner ? (
-            <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-              Yes
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              No
-            </Badge>
-          )}
-        </div>
-      );
-    },
-    meta: { label: "WO By Owner" },
-    sortingFn: "basic",
-  }),
-  helper.accessor("postChargeListLength", {
-    id: "Post Charge",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <ReceiptIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Post Charge
-        </Button>
-      </div>
-    ),
-    cell: ({ getValue, row }) => {
-      const hasPostCharge =
-        Number(getValue()) > 0 ||
-        (Array.isArray(row.original.postChargeList) && row.original.postChargeList.length > 0) ||
-        Number(row.original.post_charge_list_length) > 0 ||
-        (Array.isArray(row.original.post_charge_list) && row.original.post_charge_list.length > 0);
+  //     return (
+  //       <div className="flex justify-center">
+  //         {isOwner ? (
+  //           <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+  //             Yes
+  //           </Badge>
+  //         ) : (
+  //           <Badge variant="outline" className="text-muted-foreground">
+  //             No
+  //           </Badge>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  //   meta: { label: "WO By Owner" },
+  //   sortingFn: "basic",
+  // }),
+  // helper.accessor("postChargeListLength", {
+  //   id: "Post Charge",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <ReceiptIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         Post Charge
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ getValue, row }) => {
+  //     const hasPostCharge =
+  //       Number(getValue()) > 0 ||
+  //       (Array.isArray(row.original.postChargeList) && row.original.postChargeList.length > 0) ||
+  //       Number(row.original.post_charge_list_length) > 0 ||
+  //       (Array.isArray(row.original.post_charge_list) && row.original.post_charge_list.length > 0);
 
-      return (
-        <div className="flex justify-center">
-          {hasPostCharge ? (
-            <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-              Yes
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              No
-            </Badge>
-          )}
-        </div>
-      );
-    },
-    meta: { label: "Post Charge" },
-    sortingFn: "basic",
-  }),
-  helper.accessor("breakContractDate", {
-    id: "Break Contract",
-    header: ({ column }) => (
-      <div className="flex justify-center w-full">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs sm:text-sm px-0 font-semibold mx-auto"
-        >
-          <FileXIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
-          Break Contract
-        </Button>
-      </div>
-    ),
-    cell: ({ getValue, row }) => {
-      const isBreak = Boolean(row.original.isBreakContract);
-      const dateVal =
-        getValue() || row.original.breakcontract_date || row.original.breakContractDate;
+  //     return (
+  //       <div className="flex justify-center">
+  //         {hasPostCharge ? (
+  //           <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+  //             Yes
+  //           </Badge>
+  //         ) : (
+  //           <Badge variant="outline" className="text-muted-foreground">
+  //             No
+  //           </Badge>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  //   meta: { label: "Post Charge" },
+  //   sortingFn: "basic",
+  // }),
+  // helper.accessor("breakContractDate", {
+  //   id: "Break Contract",
+  //   header: ({ column }) => (
+  //     <div className="flex justify-center w-full">
+  //       <Button
+  //         variant="ghost"
+  //         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //         className="text-xs sm:text-sm px-0 font-semibold mx-auto"
+  //       >
+  //         <FileXIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+  //         Break Contract
+  //       </Button>
+  //     </div>
+  //   ),
+  //   cell: ({ getValue, row }) => {
+  //     const isBreak = Boolean(row.original.isBreakContract);
+  //     const dateVal =
+  //       getValue() || row.original.breakcontract_date || row.original.breakContractDate;
 
-      return (
-        <div className="flex justify-center">
-          {isBreak ? (
-            <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-              {dateVal && dateVal !== true ? fmtDate(dateVal) : "Yes"}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              No
-            </Badge>
-          )}
-        </div>
-      );
-    },
-    meta: { label: "Break Contract" },
-    sortingFn: "basic",
-  }),
+  //     return (
+  //       <div className="flex justify-center">
+  //         {isBreak ? (
+  //           <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+  //             {dateVal && dateVal !== true ? fmtDate(dateVal) : "Yes"}
+  //           </Badge>
+  //         ) : (
+  //           <Badge variant="outline" className="text-muted-foreground">
+  //             No
+  //           </Badge>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  //   meta: { label: "Break Contract" },
+  //   sortingFn: "basic",
+  // }),
 ]);

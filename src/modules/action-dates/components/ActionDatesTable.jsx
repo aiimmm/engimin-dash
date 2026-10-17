@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate } from "@/lib/utils";
 import { DataTable } from "@/modules/shared/work-orders";
 import { CalendarSyncIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -50,18 +51,27 @@ export const ActionDatesTable = ({
   selectedClusters,
   onSelectedClustersChange,
 }) => {
+  // Label rentang tanggal — tampilkan satu tanggal jika from=to, rentang jika berbeda
+  const dateLabel = dateRange?.from
+    ? dateRange.to && dateRange.to !== dateRange.from
+      ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+      : formatDate(dateRange.from)
+    : null;
+
+  // Label cluster — spesifik jika ada pilihan, "seluruh cluster" jika tidak
+  const clusterLabel =
+    selectedClusters?.length > 0 ? selectedClusters.join(", ") : "seluruh cluster";
+
   return (
     <div>
-      {/* <div className="flex items-center justify-center border aspect-square size-12 rounded-xl border-black/5 bg-neutral-200 dark:border-white/5 dark:bg-neutral-800">
-          <HugeiconsIcon icon={TwentyFourHoursClockIcon} className="size-6" />
-        </div> */}
       <div className="flex flex-col gap-1">
         <CardTitle className="flex items-center gap-2">
           <HugeiconsIcon icon={CalendarSyncIcon} className="size-5" />
-          Action Dates Work Orders
+          Action Dates Work Orders {dateLabel && <>{dateLabel}</>}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Work orders yang dijadwalkan kemarin berdasarkan action dates di seluruh cluster.
+          Work orders yang dijadwalkan kemarin berdasarkan action dates di{" "}
+          <span className={selectedClusters?.length > 0 ? "uppercase" : ""}>{clusterLabel}</span>.
         </CardDescription>
       </div>
 

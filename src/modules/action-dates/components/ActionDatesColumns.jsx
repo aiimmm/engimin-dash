@@ -136,7 +136,7 @@ export const ActionDatesColumns = helper.columns([
       return (
         <div className="min-w-32">
           <Typography as="p" className="font-medium text-xs mb-1 italic">
-            BookID: {row.original.roomCode}
+            BookID: {reservation.genId}
           </Typography>
           <Typography as="p" className="text-[10px] text-muted-foreground">
             Check-In: {fmtDate(reservation.checkinDate)}

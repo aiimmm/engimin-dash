@@ -1,18 +1,18 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
 import {
-  AlertTriangleIcon,
-  Building2Icon,
-  ClipboardListIcon,
-  CogIcon,
-  HeadphonesIcon,
-  HelpCircleIcon,
-  InfoIcon,
-  MinusCircleIcon,
-  PackageIcon,
-  ShieldCheckIcon,
-  ShoppingBagIcon,
-  WrenchIcon,
-} from "lucide-react";
+  ArrowBigDownDashIcon,
+  ArrowBigUpDashIcon,
+  ArrowDataTransferHorizontalIcon,
+  BrushCleaningIcon,
+  Building02Icon,
+  ComplaintIcon,
+  CustomerService01Icon,
+  GearsIcon,
+  LicenseMaintenanceIcon,
+  ShoppingCart01Icon,
+  StoreManagement01Icon,
+  Summation01Icon,
+} from "@hugeicons/core-free-icons";
 
 export const CreatedDatesStats = ({ stats }) => {
   const safeStats = stats || {
@@ -31,80 +31,89 @@ export const CreatedDatesStats = ({ stats }) => {
   };
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <StatsCard
-        label="Total"
+        label="Total Work Orders"
         value={safeStats.Total}
-        helperText="All Work Orders"
-        icon={ClipboardListIcon}
+        helperText="All departments"
+        icon={Summation01Icon}
       />
 
       <StatsCard
         label="Engineering"
         value={safeStats.Engineering}
-        helperText="Total Work Orders Engineering Dept"
-        icon={WrenchIcon}
+        helperText="Engineering department"
+        icon={GearsIcon}
       />
+
       <StatsCard
         label="ORM"
         value={safeStats.ORM}
-        helperText="Total Work Orders ORM Dept"
-        icon={Building2Icon}
+        helperText="ORM department"
+        icon={Building02Icon}
       />
+
       <StatsCard
         label="Operational"
         value={safeStats.Operational}
-        helperText="Total Work Orders Operational Dept"
-        icon={CogIcon}
+        helperText="Operations department"
+        icon={BrushCleaningIcon}
       />
+
       <StatsCard
         label="DIC CS"
         value={safeStats.CS}
-        helperText="Total Work Orders CS Dept"
-        icon={HeadphonesIcon}
+        helperText="Customer service"
+        icon={CustomerService01Icon}
       />
+
       <StatsCard
         label="Traveliomart"
         value={safeStats.Traveliomart}
-        helperText="Total Work Orders Traveliomart Dept"
-        icon={ShoppingBagIcon}
+        helperText="Traveliomart department"
+        icon={ShoppingCart01Icon}
       />
 
       <StatsCard
         label="Technical Auditor"
         value={safeStats.TechnicalAuditor}
-        helperText="Total Work Orders Technical Auditor Dept"
-        icon={ShieldCheckIcon}
+        helperText="Technical audit"
+        icon={LicenseMaintenanceIcon}
       />
+
       <StatsCard
         label="Admin Inventory"
         value={safeStats.AdminInventory}
-        helperText="Total Work Orders Admin Inventory Dept"
-        icon={PackageIcon}
+        helperText="Inventory administration"
+        icon={StoreManagement01Icon}
       />
+
       <StatsCard
         label="Unassigned"
         value={safeStats.Unassigned}
-        helperText="Total Work Orders Unassigned"
-        icon={HelpCircleIcon}
+        helperText="No department assigned"
+        icon={ComplaintIcon}
       />
+
       <StatsCard
-        label="Status: Minor"
+        label="Minor Status"
         value={safeStats.Minor}
-        helperText="Total Work Orders with Minor Room Status"
-        icon={InfoIcon}
+        helperText="Minor room status"
+        icon={ArrowBigDownDashIcon}
       />
+
       <StatsCard
-        label="Status: Major"
+        label="Major Status"
         value={safeStats.Major}
-        helperText="Total Work Orders with Major Room Status"
-        icon={AlertTriangleIcon}
+        helperText="Major room status"
+        icon={ArrowBigUpDashIcon}
       />
+
       <StatsCard
-        label="Status: -"
+        label="No Room Status"
         value={safeStats.NoRoomStatus}
-        helperText="Total Work Orders with No Room Status"
-        icon={MinusCircleIcon}
+        helperText="Status not specified"
+        icon={ArrowDataTransferHorizontalIcon}
       />
     </div>
   );
