@@ -262,38 +262,102 @@ export function normalizeActiveReservation(response, today = jakartaTodayNumber(
   return normalizeReservation(active);
 }
 
-export function checkIsBreakContract(dateValue, baseDate = new Date()) {
-  if (!dateValue || dateValue === "—" || dateValue === "-" || dateValue === true) return false;
-  const str = String(dateValue).trim();
+// ─── Pending Churn Detection ──────────────────────────────────────────────────
+
+/** Teks remark yang di-generate sistem saat WO dibuat dari proses Pending Churn */
+const PENDING_CHURN_REMARK_FRAGMENT =
+  "Mohon dibantu untuk pengecekan WO outstanding unit berikut karena unit akan di serah terima kan";
+
+/**
+ * Cek apakah array WO history mengandung WO "Pending Churn" yang masih aktif (status New).
+ * Jika ada, berarti unit sedang dalam proses break contract meskipun tanggalnya belum lewat.
+ *
+ * Indikator:
+ *   - remark mengandung teks Pending Churn
+ *   - status === "New"
+ *
+ * @param {object[]} historyItems - array item dari getListWOHistoryPerRoomV2
+ * @returns {boolean}
+ */
+export function checkHasPendingChurnWo(historyItems) {
+  if (!Array.isArray(historyItems) || !historyItems.length) return false;
+  return historyItems.some((item) => {
+    const remark = String(item.remark || "");
+    const status = String(item.status || item.rt_status || "").toLowerCase();
+    return (
+      remark.includes(PENDING_CHURN_REMARK_FRAGMENT) && (status === "new" || status === "pending")
+    );
+  });
+}
+
+// ─── Break Contract Check ─────────────────────────────────────────────────────
+
+/**
+ * Menentukan apakah sebuah WO sedang dalam status Break Contract.
+ *
+ * Kondisi TRUE (salah satu terpenuhi):
+ *
+ * A. Tanggal-based:
+ *   1. breakcontract_date tidak null/kosong
+ *   2. breakcontract_date <= hari ini
+ *   3. breakcontract_date !== endcontract_date (jika sama = CO normal bukan break)
+ *
+ * B. Pending Churn history (override tanggal):
+ *   1. breakcontract_date tidak null
+ *   2. Room memiliki WO history Pending Churn dengan status New/Pending
+ *      → meskipun breakcontract_date masih di masa depan
+ *
+ * @param {string|null} breakDateValue       - nilai breakcontract_date dari API
+ * @param {string|null} endDateValue         - nilai endcontract_date dari API
+ * @param {Date}        baseDate             - referensi "hari ini" (default: new Date())
+ * @param {boolean}     hasPendingChurnHistory - apakah room punya WO Pending Churn aktif
+ */
+export function checkIsBreakContract(
+  breakDateValue,
+  endDateValue = null,
+  baseDate = new Date(),
+  hasPendingChurnHistory = false,
+) {
+  if (
+    !breakDateValue ||
+    breakDateValue === "—" ||
+    breakDateValue === "-" ||
+    breakDateValue === true
+  )
+    return false;
+  const str = String(breakDateValue).trim();
   if (!str) return false;
 
-  let breakDate = null;
-  // Handle YYYYMMDD
-  if (/^\d{8}$/.test(str)) {
-    const y = Number(str.slice(0, 4));
-    const m = Number(str.slice(4, 6)) - 1;
-    const d = Number(str.slice(6, 8));
-    breakDate = new Date(y, m, d);
-  } else {
-    // Handle YYYY-MM-DD or YYYY-MM-DD HH:mm:ss or ISO
-    const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      breakDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-    } else {
-      const d = new Date(str);
-      if (!isNaN(d.getTime())) {
-        breakDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      }
+  /** Parse berbagai format date ke Date object (midnight) */
+  const parseToMidnight = (raw) => {
+    if (!raw) return null;
+    const s = String(raw).trim();
+    if (/^\d{8}$/.test(s)) {
+      return new Date(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8)));
     }
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
+  const breakDate = parseToMidnight(str);
+  if (!breakDate) return false;
+
+  // Kondisi 3: jika breakcontract_date == endcontract_date → bukan break, itu CO normal
+  if (endDateValue) {
+    const endDate = parseToMidnight(endDateValue);
+    if (endDate && breakDate.getTime() === endDate.getTime()) return false;
   }
 
-  if (!breakDate || isNaN(breakDate.getTime())) return false;
+  // Kondisi B (override): ada WO Pending Churn aktif di history room
+  // → break contract meskipun tanggalnya belum lewat
+  if (hasPendingChurnHistory) return true;
 
   const now = baseDate instanceof Date ? baseDate : new Date(baseDate);
   const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Jika breakcontract_date <= today: Sudah lewat tanggalnya -> Break contract
-  // Jika breakcontract_date > today: Masih tanggal di masa depan -> Belum break contract
+  // Kondisi A: breakcontract_date <= hari ini → break sedang/sudah terjadi
   return breakDate.getTime() <= todayMidnight.getTime();
 }
 
@@ -303,6 +367,14 @@ export function normalizeWorkOrder(item, index = 0) {
     item.breakContractDate,
     item.break_contract_date,
     item.breakcontractDate,
+    null,
+  );
+
+  const rawEndContractDate = first(
+    item.endcontract_date,
+    item.endContractDate,
+    item.end_contract_date,
+    item.endcontractDate,
     null,
   );
 
@@ -399,8 +471,10 @@ export function normalizeWorkOrder(item, index = 0) {
         0,
       ),
     ),
+    endContractDate: rawEndContractDate,
     breakContractDate: rawBreakContractDate,
-    isBreakContract: checkIsBreakContract(rawBreakContractDate),
+    hasPendingChurnHistory: false, // akan di-enrich di server route jika ada breakcontract_date
+    isBreakContract: checkIsBreakContract(rawBreakContractDate, rawEndContractDate),
   };
 }
 

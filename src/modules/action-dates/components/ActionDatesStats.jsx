@@ -1,5 +1,5 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
-import { ArrowRightLeftIcon, ClipboardListIcon, ClockIcon } from "lucide-react";
+import { ClipboardListIcon } from "@hugeicons/core-free-icons";
 
 export const ActionDatesStats = ({ rows = [] }) => {
   const total = rows.length;
@@ -28,12 +28,17 @@ export const ActionDatesStats = ({ rows = [] }) => {
         helperText="All clusters"
         icon={ClipboardListIcon}
       />
-      <StatsCard label="New" value={newCount} helperText="Total WO Status New" icon={ClockIcon} />
+      <StatsCard
+        label="New"
+        value={newCount}
+        helperText="Total WO Status New"
+        icon={ClipboardListIcon}
+      />
       <StatsCard
         label="On Progress"
         value={onProgressCount}
         helperText="Total WO Status On Progress"
-        icon={ArrowRightLeftIcon}
+        icon={ClipboardListIcon}
       />
     </div>
   );

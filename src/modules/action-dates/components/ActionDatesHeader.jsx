@@ -1,49 +1,42 @@
+"use client";
+
+import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
 import { Typography } from "@/components/elements/Typography";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/utils";
-import { yesterday } from "@/modules/shared/work-orders/lib";
-import { CalendarDaysIcon, RefreshCwIcon } from "lucide-react";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
-export const ActionDatesHeader = ({ query }) => {
-  const yesterdayStr = yesterday();
-  const formattedYesterday = formatDate(yesterdayStr);
-
+export const ActionDatesHeader = ({ query, dateRange, setDateRange }) => {
   return (
     <div className="flex flex-col items-start xl:flex-row xl:items-end xl:justify-between gap-4">
       <div>
-        <Badge className="uppercase tracking-widest text-black dark:text-white mb-3 border border-black/5 bg-neutral-200 dark:border-white/5 dark:bg-neutral-800">
-          <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
-          Live Operation
-        </Badge>
-
-        <div className="flex items-center gap-2 border px-2 py-1 rounded-lg bg-card/10 shadow-xs">
-          <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
-          <Typography as="small" className="text-muted-foreground">
+        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
+          <span className="size-1.5 rounded-full bg-green-500" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Live Operation
-          </Typography>
+          </p>
         </div>
         <Typography as="h2" className="font-extrabold">
-          Yesterday&apos;s Action Dates
+          Action Dates Work Orders
         </Typography>
         <Typography as="p" className="text-sm text-muted-foreground mt-1">
-          Menampilkan work orders yang dijadwalkan untuk kemarin di seluruh cluster. Diperbarui
-          secara otomatis setiap 3 menit.
+          Menampilkan work orders berdasarkan rentang tanggal action date yang dipilih.
         </Typography>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 rounded-xl border bg-card px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap">
-          <CalendarDaysIcon className="size-4 text-muted-foreground" />
-          <span>Yesterday: {formattedYesterday}</span>
-        </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
         <Button
-          size="lg"
           variant="default"
           onClick={() => {
             if (!query.isFetching) query.refetch();
           }}
         >
-          <RefreshCwIcon className={query.isFetching ? "animate-spin" : ""} /> Refresh
+          <HugeiconsIcon
+            icon={Refresh01Icon}
+            className={`mr-0.5 size-4 ${query.isFetching ? "animate-spin" : ""}`}
+          />
+          <span>Refresh</span>
         </Button>
       </div>
     </div>

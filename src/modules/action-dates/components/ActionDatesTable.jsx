@@ -1,9 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/modules/shared/work-orders";
+import { CalendarSyncIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { TriangleAlertIcon } from "lucide-react";
 import { ActionDatesColumns } from "./ActionDatesColumns";
 
@@ -49,14 +51,21 @@ export const ActionDatesTable = ({
   onSelectedClustersChange,
 }) => {
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle>Action Dates Work Orders</CardTitle>
-        <CardDescription>
-          Work orders yang dijadwalkan berdasarkan action dates di seluruh cluster.
+    <div>
+      {/* <div className="flex items-center justify-center border aspect-square size-12 rounded-xl border-black/5 bg-neutral-200 dark:border-white/5 dark:bg-neutral-800">
+          <HugeiconsIcon icon={TwentyFourHoursClockIcon} className="size-6" />
+        </div> */}
+      <div className="flex flex-col gap-1">
+        <CardTitle className="flex items-center gap-2">
+          <HugeiconsIcon icon={CalendarSyncIcon} className="size-5" />
+          Action Dates Work Orders
+        </CardTitle>
+        <CardDescription className="text-muted-foreground">
+          Work orders yang dijadwalkan kemarin berdasarkan action dates di seluruh cluster.
         </CardDescription>
-      </CardHeader>
-      <CardContent>
+      </div>
+
+      <CardContent className="mt-4 p-0">
         {query.isLoading ? (
           <LoadingTable />
         ) : query.isError ? (
@@ -91,6 +100,6 @@ export const ActionDatesTable = ({
           />
         )}
       </CardContent>
-    </Card>
+    </div>
   );
 };

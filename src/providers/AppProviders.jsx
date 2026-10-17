@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { BackgroundSheetSyncProvider } from "./BackgroundSheetSyncProvider";
 import { NextThemeProvider } from "./NextThemeProvider";
 
 export function AppProviders({ children }) {
@@ -23,7 +22,8 @@ export function AppProviders({ children }) {
       <QueryClientProvider client={queryClient}>
         <TopLoader />
         <TooltipProvider>
-          <BackgroundSheetSyncProvider>{children}</BackgroundSheetSyncProvider>
+          {/* <BackgroundSheetSyncProvider>{children}</BackgroundSheetSyncProvider> */}
+          {children}
         </TooltipProvider>
         <Toaster />
       </QueryClientProvider>

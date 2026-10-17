@@ -11,24 +11,32 @@ const EMPTY_ROWS = [];
 export function useActionDatesData() {
   const yesterdayDate = useMemo(() => yesterday(), []);
   const todayDate = useMemo(() => today(), []);
+
+  // Default: kemarin s/d kemarin — auto-set setiap masuk halaman
+  const [dateRange, setDateRange] = useState(() => ({
+    from: yesterdayDate,
+    to: yesterdayDate,
+  }));
+
   const [selectedClusters, setSelectedClusters] = useState([]);
   const knownIds = useRef(new Set());
 
   const query = useQuery({
-    queryKey: ["workorders-action-dates", yesterdayDate],
+    queryKey: ["workorders-action-dates", dateRange.from, dateRange.to],
     queryFn: async () =>
       (
         await apiClient.get("/workorders", {
           params: {
             all: 1,
             actionDates: 1,
-            dateFrom: yesterdayDate,
-            dateTo: yesterdayDate,
+            dateFrom: dateRange.from,
+            dateTo: dateRange.to || dateRange.from,
             posDate: todayDate,
           },
         })
       ).data,
     refetchInterval: 180_000,
+    enabled: Boolean(dateRange.from),
   });
 
   useEffect(() => {
@@ -51,6 +59,8 @@ export function useActionDatesData() {
 
   return {
     yesterdayDate,
+    dateRange,
+    setDateRange,
     selectedClusters,
     setSelectedClusters,
     query,

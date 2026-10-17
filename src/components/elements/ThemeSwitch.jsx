@@ -4,11 +4,22 @@ import { cn } from "@/lib/utils";
 import { MoonStarIcon, Sun03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import { Switch } from "../ui/switch";
 
 export const ThemeSwitch = () => {
   const { theme, setTheme } = useTheme();
-  const isDarkMode = theme === "dark";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Defer agar SSR dan render client awal cocok (theme tidak diketahui di server)
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Sebelum mounted: false agar cocok dengan SSR (theme = undefined di server)
+  // Setelah mounted: nilai tema sebenarnya dari next-themes
+  const isDarkMode = mounted && theme === "dark";
 
   const handleThemeChange = (isChecked) => {
     setTheme(isChecked ? "dark" : "light");

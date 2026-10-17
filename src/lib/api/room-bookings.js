@@ -74,3 +74,32 @@ export async function mapWithConcurrency(items, concurrency, mapper) {
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
   return results;
 }
+
+// ─── WO History per Room ──────────────────────────────────────────────────────
+
+const woHistoryCache = new Map();
+
+/**
+ * Fetch WO history untuk satu room dari upstream getListWOHistoryPerRoomV2.
+ * Hasilnya di-cache 3 menit agar tidak membebani upstream saat banyak room.
+ *
+ * @param {object} session
+ * @param {number} foRoomsId
+ * @returns {Promise<object[]>} array of WO history items
+ */
+export async function getRoomWoHistory(session, foRoomsId) {
+  const userId = session?.user?.id || "";
+  const cacheKey = `hist:${userId}:${foRoomsId}:${jakartaTodayNumber()}`;
+  const cached = woHistoryCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const { data } = await upstreamApi.post(
+    `/getListWOHistoryPerRoomV2?id=${encodeURIComponent(userId)}`,
+    { fo_rooms_id: Number(foRoomsId), limit: 50, offset: 0 },
+    { headers: authorizationHeaders(session) },
+  );
+
+  const items = Array.isArray(data?.data) ? data.data : [];
+  woHistoryCache.set(cacheKey, { value: items, expiresAt: Date.now() + CACHE_TTL_MS });
+  return items;
+}

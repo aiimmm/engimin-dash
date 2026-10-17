@@ -8,7 +8,11 @@
 //   - /dashboard/conflict-dates (?conflictDates=1)
 // ============================================================================
 
-import { getRoomBookingSummary, mapWithConcurrency } from "@/lib/api/room-bookings";
+import {
+  getRoomBookingSummary,
+  getRoomWoHistory,
+  mapWithConcurrency,
+} from "@/lib/api/room-bookings";
 import { authorizationHeaders, upstreamApi } from "@/lib/api/upstream";
 import { getSession } from "@/lib/auth/session";
 import { safeError } from "@/lib/security";
@@ -21,6 +25,8 @@ import {
 } from "@/modules/conflict-dates/lib";
 import { createCreatedTodayPayload } from "@/modules/created-dates/lib";
 import {
+  checkHasPendingChurnWo,
+  checkIsBreakContract,
   createWorkOrderPayload,
   EXTRA_DEPARTMENT_QUERIES,
   hasScheduledActionTime,
@@ -192,31 +198,66 @@ export async function GET(request) {
         ),
       ];
 
-      if (roomIds.length) {
-        const summaries = await mapWithConcurrency(roomIds, 6, async (roomId) => [
-          roomId,
-          await getRoomBookingSummary(session, roomId).catch(() => null),
-        ]);
-        const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
-        const enrichedRows = rows.map((row) => {
-          const summary = bookingByRoom.get(row.foRoomsId);
-          const matchedFuture = row.otaBookNumber
-            ? summary?.bookingsByGenId?.[row.otaBookNumber]
-            : null;
-          return {
-            ...row,
-            activeReservation: summary?.active || null,
-            latestReservation: summary?.latest || null,
-            futureReservation: matchedFuture || null,
-            booking: summary?.active || null,
-            ciDate: matchedFuture?.checkinDate || row.ciDate,
-            coDate: matchedFuture?.checkoutDate || row.coDate,
-          };
-        });
-        return NextResponse.json({ rows: enrichedRows, total: enrichedRows.length });
+      if (!roomIds.length) {
+        return NextResponse.json({ rows, total: rows.length });
       }
 
-      return NextResponse.json({ rows, total: rows.length });
+      // ── Parallel: booking summary + WO history (hanya room dengan breakcontract_date) ──
+      const breakContractRoomIds = [
+        ...new Set(
+          rows
+            .filter((row) => Boolean(row.breakContractDate))
+            .map((row) => row.foRoomsId)
+            .filter((id) => Number.isFinite(Number(id))),
+        ),
+      ];
+
+      const [summaries, woHistories] = await Promise.all([
+        // Booking summary untuk semua room (reservasi aktif / CI / CO)
+        mapWithConcurrency(roomIds, 6, async (roomId) => [
+          roomId,
+          await getRoomBookingSummary(session, roomId).catch(() => null),
+        ]),
+        // WO history hanya untuk room yang punya breakcontract_date
+        mapWithConcurrency(breakContractRoomIds, 6, async (roomId) => [
+          roomId,
+          await getRoomWoHistory(session, roomId).catch(() => []),
+        ]),
+      ]);
+
+      const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
+      // Map roomId → hasPendingChurnWo (boolean)
+      const pendingChurnByRoom = new Map(
+        woHistories.map(([roomId, history]) => [roomId, checkHasPendingChurnWo(history)]),
+      );
+
+      const enrichedRows = rows.map((row) => {
+        const summary = bookingByRoom.get(row.foRoomsId);
+        const matchedFuture = row.otaBookNumber
+          ? summary?.bookingsByGenId?.[row.otaBookNumber]
+          : null;
+        const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+
+        return {
+          ...row,
+          activeReservation: summary?.active || null,
+          latestReservation: summary?.latest || null,
+          futureReservation: matchedFuture || null,
+          booking: summary?.active || null,
+          ciDate: matchedFuture?.checkinDate || row.ciDate,
+          coDate: matchedFuture?.checkoutDate || row.coDate,
+          hasPendingChurnHistory,
+          // Recompute isBreakContract dengan info Pending Churn
+          isBreakContract: checkIsBreakContract(
+            row.breakContractDate,
+            row.endContractDate,
+            new Date(),
+            hasPendingChurnHistory,
+          ),
+        };
+      });
+
+      return NextResponse.json({ rows: enrichedRows, total: enrichedRows.length });
     }
 
     if (isCreatedToday) {
