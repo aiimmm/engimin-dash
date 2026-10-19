@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate } from "@/lib/utils";
 import { DataTable } from "@/modules/shared/work-orders";
 import { TriangleAlertIcon } from "lucide-react";
 import { AppointmentColumns } from "./AppointmentColumns";
@@ -47,11 +48,26 @@ export const AppointmentTable = ({
   selectedClusters,
   onSelectedClustersChange,
 }) => {
+  const dateLabel = dateRange?.from
+    ? dateRange.to && dateRange.to !== dateRange.from
+      ? `${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+      : formatDate(dateRange.from)
+    : null;
+
+  const clusterLabel =
+    selectedClusters?.length > 0 ? selectedClusters.join(", ") : "seluruh cluster";
+
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle>Appointment Work Orders</CardTitle>
-        <CardDescription>Semua work orders yang dijadwalkan di seluruh cluster.</CardDescription>
+        <CardTitle className="flex items-center gap-2 flex-wrap">
+          Appointment Work Orders
+          {/* {dateLabel && <>{dateLabel}</>} */}
+        </CardTitle>
+        <CardDescription>
+          Semua work orders yang terjadwal di{" "}
+          <span className={selectedClusters?.length > 0 ? "uppercase" : ""}>{clusterLabel}</span>.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {query.isLoading ? (

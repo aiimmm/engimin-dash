@@ -12,7 +12,7 @@ export const AllocationModules = () => {
   return (
     <div className="space-y-4">
       <AllocationHeader query={query} />
-      <AllocationStats rows={clusterFilteredRows} />
+      <AllocationStats rows={clusterFilteredRows} selectedClusters={selectedClusters} />
       <AllocationTable
         rows={rows}
         query={query}

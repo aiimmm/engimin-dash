@@ -13,7 +13,7 @@ export const CreatedDatesModules = () => {
   return (
     <div className="space-y-4">
       <CreatedDatesHeader query={query} dateRange={dateRange} setDateRange={setDateRange} />
-      <CreatedDatesStats stats={stats} />
+      <CreatedDatesStats stats={stats} selectedClusters={selectedClusters} />
       <CreatedDatesTable
         rows={rows}
         query={query}

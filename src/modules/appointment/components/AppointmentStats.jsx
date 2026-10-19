@@ -1,5 +1,10 @@
-import { CheckCircle2Icon, CircleDotIcon, ClipboardListIcon } from "lucide-react";
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
+import {
+  Building02Icon,
+  CalendarCheckIn01Icon,
+  UserCheck01Icon,
+  UserSearch01Icon,
+} from "@hugeicons/core-free-icons";
 
 export const AppointmentStats = ({ rows, stats }) => {
   const unitCount = new Set(rows.map((row) => row.latestReservation?.genId).filter(Boolean)).size;
@@ -15,28 +20,28 @@ export const AppointmentStats = ({ rows, stats }) => {
   return (
     <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-4">
       <StatsCard
-        label="Total"
+        label="Total Appointments"
         value={rows.length}
-        helperText="All data loaded"
-        icon={ClipboardListIcon}
+        helperText="All work order appointments"
+        icon={CalendarCheckIn01Icon}
       />
       <StatsCard
-        label="Unit"
+        label="Total Units"
         value={unitCount}
-        helperText="Total Units by GenID"
-        icon={ClipboardListIcon}
+        helperText="Unique units by GenID"
+        icon={Building02Icon}
       />
       <StatsCard
-        label="Assign"
+        label="Assigned"
         value={assignCount}
-        helperText="Total Engineers Assigned"
-        icon={CircleDotIcon}
+        helperText="With assigned engineers"
+        icon={UserCheck01Icon}
       />
       <StatsCard
-        label="Unassign"
+        label="Unassigned"
         value={unassignCount}
-        helperText="Total Engineers Unassigned"
-        icon={CheckCircle2Icon}
+        helperText="Without assigned engineers"
+        icon={UserSearch01Icon}
       />
     </div>
   );

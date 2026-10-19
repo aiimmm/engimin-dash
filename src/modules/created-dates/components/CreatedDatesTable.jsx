@@ -65,7 +65,8 @@ export const CreatedDatesTable = ({
       <Card>
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2 flex-wrap">
-            Created Dates Work Orders {dateLabel && <>{dateLabel}</>}
+            Created Dates Work Orders
+            {/* {dateLabel && <>{dateLabel}</>} */}
           </CardTitle>
           <CardDescription>
             Semua work orders yang dibuat berdasarkan rentang tanggal di{" "}

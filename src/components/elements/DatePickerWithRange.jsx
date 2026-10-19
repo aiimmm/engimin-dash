@@ -1,8 +1,9 @@
 "use client";
 
 // import { Button } from "@/components/ui/button";
+import { Calendar02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { format, isValid, parse } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import * as React from "react";
 import { Button } from "../ui/button";
 import { Calendar } from "../ui/calendar";
@@ -43,8 +44,12 @@ export function DatePickerWithRange({ dateRange, setDateRange, className }) {
     <Popover>
       <PopoverTrigger
         render={
-          <Button size="lg" variant="outline" id="date-picker-range" className={className ?? ""}>
-            <CalendarIcon data-icon="inline-start" />
+          <Button variant="outline" id="date-picker-range" className={`text-sm ${className ?? ""}`}>
+            <HugeiconsIcon
+              icon={Calendar02Icon}
+              data-icon="inline-start"
+              className="mr-0.5 size-4 "
+            />
             {selected.from ? (
               selected.to ? (
                 <>

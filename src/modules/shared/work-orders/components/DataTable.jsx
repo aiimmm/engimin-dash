@@ -134,6 +134,7 @@ export function DataTable({
 
   const [extendOpen, setExtendOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [clusterSearch, setClusterSearch] = useState("");
 
   const pathname = usePathname();
   const isActionDatesPage = pathname === "/dashboard/action-dates";
@@ -148,6 +149,13 @@ export function DataTable({
     });
     return Array.from(list).sort();
   }, [data]);
+
+  // Clusters yang ditampilkan di dropdown — filter berdasarkan input pencarian
+  const filteredClusters = useMemo(() => {
+    if (!clusterSearch.trim()) return clusters;
+    const q = clusterSearch.toLowerCase();
+    return clusters.filter((c) => c.toLowerCase().includes(q));
+  }, [clusters, clusterSearch]);
 
   const filteredData = useMemo(() => {
     return data.filter((row) => {
@@ -425,7 +433,11 @@ export function DataTable({
             </Button>
           )}
           {clusters.length > 0 && (
-            <DropdownMenu>
+            <DropdownMenu
+              onOpenChange={(open) => {
+                if (!open) setClusterSearch("");
+              }}
+            >
               <DropdownMenuTrigger
                 render={
                   <Button variant="secondary" className="text-xs gap-1 flex-1 lg:flex-none">
@@ -438,37 +450,69 @@ export function DataTable({
                   </Button>
                 }
               />
-              <DropdownMenuContent
-                align="start"
-                className="w-70 max-h-64 overflow-y-auto uppercase"
-              >
-                <DropdownMenuGroup className="text-xs">
-                  <DropdownMenuLabel className="capitalize">Filter Cluster:</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {clusters.map((c) => (
-                    <DropdownMenuCheckboxItem
-                      key={c}
-                      checked={selectedClusters.includes(c)}
-                      onCheckedChange={() => toggleCluster(c)}
+              <DropdownMenuContent align="start" className="w-72 overflow-hidden p-0">
+                {/* Header & Search */}
+                <div className="sticky top-0 z-10 border-b p-2">
+                  <InputGroup className="h-7 w-full">
+                    <InputGroupAddon>
+                      <HugeiconsIcon icon={Search01Icon} className="size-4 text-muted-foreground" />
+                    </InputGroupAddon>
+
+                    <InputGroupInput
+                      placeholder="Cari cluster..."
                       className="text-xs"
-                    >
-                      {c}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                  {selectedClusters.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <Button
-                        variant="default"
-                        size="xs"
-                        className="w-full text-xs"
-                        onClick={() => setSelectedClusters([])}
-                      >
-                        Reset Cluster
-                      </Button>
-                    </>
-                  )}
+                      value={clusterSearch}
+                      onChange={(e) => setClusterSearch(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
+                  </InputGroup>
+                </div>
+
+                {/* Cluster List */}
+                <DropdownMenuGroup>
+                  <div className="max-h-60 overflow-y-auto overscroll-contain p-1.5">
+                    {filteredClusters.length > 0 ? (
+                      filteredClusters.map((c) => (
+                        <DropdownMenuCheckboxItem
+                          key={c}
+                          checked={selectedClusters.includes(c)}
+                          onCheckedChange={() => toggleCluster(c)}
+                          onSelect={(e) => e.preventDefault()}
+                          className="text-xs uppercase"
+                        >
+                          <span className="min-w-0 truncate">{c}</span>
+                        </DropdownMenuCheckboxItem>
+                      ))
+                    ) : (
+                      <div className="px-3 py-8 text-center">
+                        <HugeiconsIcon
+                          icon={Search01Icon}
+                          className="mx-auto mb-2 size-5 text-muted-foreground/50"
+                        />
+
+                        <p className="text-xs text-muted-foreground">Tidak ada cluster ditemukan</p>
+                      </div>
+                    )}
+                  </div>
                 </DropdownMenuGroup>
+
+                {/* Footer */}
+                {selectedClusters.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator className="m-0" />
+
+                    <div className="p-1 pb-1.5">
+                      <Button
+                        variant="destructive"
+                        size="xs"
+                        onClick={() => setSelectedClusters([])}
+                        className="w-full text-xs"
+                      >
+                        Reset filter
+                      </Button>
+                    </div>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -496,7 +540,7 @@ export function DataTable({
                 />
                 <DropdownMenuContent align="start" className="w-52">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>Filter Department In Charge:</DropdownMenuLabel>
+                    <DropdownMenuLabel>Department In Charge</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {ALL_DICS.map((dic) => {
                       const isEngineering = dic === "Engineering";

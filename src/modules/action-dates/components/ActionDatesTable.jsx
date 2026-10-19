@@ -67,7 +67,8 @@ export const ActionDatesTable = ({
       <div className="flex flex-col gap-1">
         <CardTitle className="flex items-center gap-2">
           <HugeiconsIcon icon={CalendarSyncIcon} className="size-5" />
-          Action Dates Work Orders {dateLabel && <>{dateLabel}</>}
+          Action Dates Work Orders
+          {/* {dateLabel && <>{dateLabel}</>} */}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           Work orders yang dijadwalkan kemarin berdasarkan action dates di{" "}

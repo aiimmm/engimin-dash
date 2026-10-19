@@ -21,7 +21,7 @@ export const ActionDatesModules = () => {
   return (
     <div className="space-y-4">
       <ActionDatesHeader query={query} dateRange={dateRange} setDateRange={setDateRange} />
-      <ActionDatesStats rows={clusterFilteredRows} />
+      <ActionDatesStats rows={clusterFilteredRows} selectedClusters={selectedClusters} />
       <Separator className="my-6" />
       <ActionDatesTable
         rows={rows}

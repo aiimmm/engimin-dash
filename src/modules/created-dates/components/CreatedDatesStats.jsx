@@ -14,7 +14,8 @@ import {
   Summation01Icon,
 } from "@hugeicons/core-free-icons";
 
-export const CreatedDatesStats = ({ stats }) => {
+export const CreatedDatesStats = ({ stats, selectedClusters = [] }) => {
+  const clusterHelperText = selectedClusters.length > 0 ? "Selected clusters" : "All clusters";
   const safeStats = stats || {
     Total: 0,
     Major: 0,
@@ -35,7 +36,7 @@ export const CreatedDatesStats = ({ stats }) => {
       <StatsCard
         label="Total Work Orders"
         value={safeStats.Total}
-        helperText="All departments"
+        helperText={clusterHelperText}
         icon={Summation01Icon}
       />
 

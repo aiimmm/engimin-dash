@@ -2,7 +2,6 @@
 
 import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
 import { Typography } from "@/components/elements/Typography";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Refresh01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -11,10 +10,12 @@ export const CreatedDatesHeader = ({ query, dateRange, setDateRange }) => {
   return (
     <div className="flex flex-col items-start xl:flex-row xl:items-end xl:justify-between gap-4">
       <div>
-        <Badge className="uppercase tracking-widest text-black dark:text-white mb-3 border border-black/5 bg-neutral-200 dark:border-white/5 dark:bg-neutral-800">
-          <span className="size-1.5 rounded-full bg-emerald-500 mr-1" />
-          Live Operation
-        </Badge>
+        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
+          <span className="size-1.5 rounded-full bg-green-500" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Live Operation
+          </p>
+        </div>
         <Typography as="h2" className="font-extrabold">
           Created Dates Overview
         </Typography>

@@ -1,7 +1,8 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
 import { ClipboardListIcon } from "@hugeicons/core-free-icons";
 
-export const ActionDatesStats = ({ rows = [] }) => {
+export const ActionDatesStats = ({ rows = [], selectedClusters = [] }) => {
+  const clusterHelperText = selectedClusters.length > 0 ? "Selected clusters" : "All clusters";
   const total = rows.length;
 
   const newCount = rows.filter((row) => {
@@ -25,7 +26,7 @@ export const ActionDatesStats = ({ rows = [] }) => {
       <StatsCard
         label="Total Action Date"
         value={total}
-        helperText="All clusters"
+        helperText={clusterHelperText}
         icon={ClipboardListIcon}
       />
       <StatsCard
