@@ -4,18 +4,15 @@ import { toast } from "@/components/ui/toast";
 import { apiClient } from "@/lib/api/client";
 import { defaultAgingDateRange } from "@/modules/aging/lib";
 import { getConflictDateRangeForSync } from "@/modules/appointment/lib";
-import {
-  calculateConflictDatesStats,
-  defaultConflictDatesRange,
-} from "@/modules/conflict-dates/lib";
+import { calculateConflictStats, defaultConflictRange } from "@/modules/conflict/lib";
 import { getDepartmentCategory } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const EMPTY_ROWS = [];
 
-export function useConflictDatesData() {
-  const initialDateRange = useMemo(() => defaultConflictDatesRange(), []);
+export function useConflictData() {
+  const initialDateRange = useMemo(() => defaultConflictRange(), []);
   const [dateRange, setDateRange] = useState(initialDateRange);
   const [selectedClusters, setSelectedClusters] = useState([]);
   const [selectedDics, setSelectedDics] = useState([]);
@@ -40,13 +37,13 @@ export function useConflictDatesData() {
   }, []);
 
   const query = useQuery({
-    queryKey: ["workorders-conflict-dates", dateRange.from, dateRange.to],
+    queryKey: ["workorders-conflict", dateRange.from, dateRange.to],
     queryFn: async () =>
       (
         await apiClient.get("/workorders", {
           params: {
             all: 1,
-            conflictDates: 1,
+            conflict: 1,
             dateFrom: dateRange.from,
             dateTo: dateRange.to,
           },
@@ -81,7 +78,7 @@ export function useConflictDatesData() {
             const conflictRes = await apiClient.get("/workorders", {
               params: {
                 all: 1,
-                conflictDates: 1,
+                conflict: 1,
                 dateFrom: conflictRange.from,
                 dateTo: conflictRange.to,
               },
@@ -173,7 +170,7 @@ export function useConflictDatesData() {
     return result;
   }, [rows, selectedClusters, selectedDics]);
 
-  const stats = useMemo(() => calculateConflictDatesStats(filteredRows), [filteredRows]);
+  const stats = useMemo(() => calculateConflictStats(filteredRows), [filteredRows]);
 
   return {
     dateRange,

@@ -1,6 +1,6 @@
 // ============================================================================
-// LIB / API — /dashboard/conflict-dates (Payload & Article Filter)
-// Purpose: Conflict dates payload builder and wo_articles exclusion filter
+// LIB / API — /dashboard/conflict (Payload & Article Filter)
+// Purpose: Conflict payload builder and wo_articles exclusion filter
 // Description: Prepares nextCI date ranges and filters out non-applicable articles
 // ============================================================================
 
@@ -26,12 +26,12 @@ export function isExcludedConflictArticle(articleName) {
 }
 
 /**
- * Generate request payload for Conflict Dates Work Orders.
+ * Generate request payload for Conflict Work Orders.
  * - nextCI_from_date: default 7 days ahead
  * - nextCI_to_date: default tomorrow
  * - pos_date: default today
  */
-export function createConflictDatesPayload(filters = {}) {
+export function createConflictPayload(filters = {}) {
   const tDate = today();
   const tomorrowDate = tomorrow();
   const next7DaysDate = format(addDays(new Date(), 7), "yyyy-MM-dd");

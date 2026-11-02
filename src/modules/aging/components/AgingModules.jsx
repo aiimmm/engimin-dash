@@ -1,10 +1,10 @@
 "use client";
 
+import { Separator } from "@/components/ui/separator";
+import { useAgingData } from "../hooks/useAgingData";
 import { AgingHeader } from "./AgingHeader";
-import { AgingPreviewReports } from "./AgingPreviewReports";
 import { AgingStats } from "./AgingStats";
 import { AgingTable } from "./AgingTable";
-import { useAgingData } from "../hooks/useAgingData";
 
 export const AgingModules = () => {
   const {
@@ -35,6 +35,7 @@ export const AgingModules = () => {
         onToggleAutoRefresh={toggleAutoRefresh}
       />
       <AgingStats stats={stats} />
+      <Separator className="my-6" />
       <AgingTable
         rows={rows}
         query={query}
@@ -44,12 +45,12 @@ export const AgingModules = () => {
         selectedDics={selectedDics}
         onSelectedDicsChange={setSelectedDics}
       />
-      <AgingPreviewReports
+      {/* <AgingPreviewReports
         rows={rows}
         selectedClusters={selectedClusters}
         selectedDics={selectedDics}
         dateRange={dateRange}
-      />
+      /> */}
     </div>
   );
 };

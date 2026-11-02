@@ -31,9 +31,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getDepartmentCategory } from "@/modules/shared/work-orders/lib";
 import { WorkOrderTableFeatures } from "@/modules/shared/work-orders";
-import { flexRender, useTable } from "@tanstack/react-table";
+import { getDepartmentCategory } from "@/modules/shared/work-orders/lib";
+import { useTable } from "@tanstack/react-table";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,

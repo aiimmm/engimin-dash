@@ -61,6 +61,39 @@ function normalizeTask(item, idx) {
   };
 }
 
+async function fetchEngineeringList(userId, headers) {
+  const options = { headers, timeout: 15000 };
+  const attempts = [
+    () => upstreamApi.get(`/listEngineering?id=`, options),
+    () => upstreamApi.get(`/listEngineering?id=${userId}`, options),
+    () => upstreamApi.get(`/listEngineering`, options),
+    () => upstreamApi.post(`/listEngineering?id=`, {}, options),
+    () => upstreamApi.post(`/listEngineering?id=${userId}`, {}, options),
+    () => upstreamApi.post(`/listEngineering`, {}, options),
+  ];
+
+  for (const attempt of attempts) {
+    try {
+      const res = await attempt();
+      const list =
+        res.data?.data ||
+        res.data?.payload?.data ||
+        res.data?.payload ||
+        res.data?.result ||
+        res.data?.rows ||
+        res.data?.list ||
+        (Array.isArray(res.data) ? res.data : null);
+
+      if (Array.isArray(list) && list.length > 0) {
+        return list;
+      }
+    } catch {
+      // ignore and try next attempt
+    }
+  }
+  return [];
+}
+
 export async function GET(request) {
   const session = await getSession();
   if (!session || !session.user || !session.user.id) {
@@ -105,62 +138,64 @@ export async function GET(request) {
   const requestOptions = { headers, timeout: 0 };
 
   try {
-    const [summaryRes, workOrdersRes, engineerRes, listWORes, completedRes] = await Promise.all([
-      upstreamApi
-        .post(`/getSummaryMonitoringEngineer?id=${userId}`, basePayload, requestOptions)
-        .catch((err) => {
-          console.error("Failed to fetch getSummaryMonitoringEngineer:", err.message);
-          return { data: { data: [] } };
-        }),
-      upstreamApi
-        .post(
-          `/getListWorkOrders?id=${userId}`,
-          { ...basePayload, limit: "", offset: 0 },
-          requestOptions,
-        )
-        .catch((err) => {
-          console.error("Failed to fetch getListWorkOrders:", err.message);
-          return { data: { payload: { data: [], totalData: 0 } } };
-        }),
-      upstreamApi
-        .post(
-          `/getListEngineerMonitoring?id=${userId}`,
-          { ...basePayload, limit: "", offset: 0 },
-          requestOptions,
-        )
-        .catch((err) => {
-          console.error("Failed to fetch getListEngineerMonitoring:", err.message);
-          return { data: { payload: { data: [], totalData: 0 } } };
-        }),
-      upstreamApi
-        .post(
-          `/listWONewSedangDiRefactor?id=${userId}`,
-          {
-            status: ["1", "2", "3", "5"],
-            cluster_id: [],
-            engginerId: "",
-            departmentInCharge: "",
-            actionDate_from: fromDate,
-            actionDate_to: toDate,
-            skipCountPaging: 0,
-            poStatus: "",
-            pos_date: toDate,
-            limit: "",
-            offset: 0,
-          },
-          requestOptions,
-        )
-        .catch((err) => {
-          console.error("Failed to fetch listWONewSedangDiRefactor:", err.message);
-          return { data: { data: [] } };
-        }),
-      upstreamApi
-        .post(`/listWONewSedangDiRefactor?id=${userId}`, completedWoPayload, requestOptions)
-        .catch((err) => {
-          console.error("Failed to fetch completed listWONewSedangDiRefactor:", err.message);
-          return { data: { data: [] } };
-        }),
-    ]);
+    const [summaryRes, workOrdersRes, engineerRes, listWORes, completedRes, rawEngineeringList] =
+      await Promise.all([
+        upstreamApi
+          .post(`/getSummaryMonitoringEngineer?id=${userId}`, basePayload, requestOptions)
+          .catch((err) => {
+            console.error("Failed to fetch getSummaryMonitoringEngineer:", err.message);
+            return { data: { data: [] } };
+          }),
+        upstreamApi
+          .post(
+            `/getListWorkOrders?id=${userId}`,
+            { ...basePayload, limit: "", offset: 0 },
+            requestOptions,
+          )
+          .catch((err) => {
+            console.error("Failed to fetch getListWorkOrders:", err.message);
+            return { data: { payload: { data: [], totalData: 0 } } };
+          }),
+        upstreamApi
+          .post(
+            `/getListEngineerMonitoring?id=${userId}`,
+            { ...basePayload, limit: "", offset: 0 },
+            requestOptions,
+          )
+          .catch((err) => {
+            console.error("Failed to fetch getListEngineerMonitoring:", err.message);
+            return { data: { payload: { data: [], totalData: 0 } } };
+          }),
+        upstreamApi
+          .post(
+            `/listWONewSedangDiRefactor?id=${userId}`,
+            {
+              status: ["1", "2", "3", "5"],
+              cluster_id: [],
+              engginerId: "",
+              departmentInCharge: "",
+              actionDate_from: fromDate,
+              actionDate_to: toDate,
+              skipCountPaging: 0,
+              poStatus: "",
+              pos_date: toDate,
+              limit: "",
+              offset: 0,
+            },
+            requestOptions,
+          )
+          .catch((err) => {
+            console.error("Failed to fetch listWONewSedangDiRefactor:", err.message);
+            return { data: { data: [] } };
+          }),
+        upstreamApi
+          .post(`/listWONewSedangDiRefactor?id=${userId}`, completedWoPayload, requestOptions)
+          .catch((err) => {
+            console.error("Failed to fetch completed listWONewSedangDiRefactor:", err.message);
+            return { data: { data: [] } };
+          }),
+        fetchEngineeringList(userId, headers),
+      ]);
 
     const rawSummaryItem =
       summaryRes.data?.data?.[0] ||
@@ -260,6 +295,41 @@ export async function GET(request) {
         return eng && eng !== "unassigned" && eng !== "—" && eng !== "-";
       });
 
+    const internalEngineers = [];
+    const vendorEngineers = [];
+
+    (rawEngineeringList || []).forEach((eng) => {
+      const type = String(eng.user_type || eng.userType || eng.type || "")
+        .trim()
+        .toLowerCase();
+      const fullname = String(eng.fullname || eng.full_name || eng.name || "").trim();
+      const username = String(eng.username || eng.user_name || "").trim();
+      const name = String(eng.name || eng.fullname || eng.username || "").trim();
+      const id = eng.id || eng.user_id || eng.engineer_id || null;
+
+      const isVendor = type === "vendor_engineer" || type.includes("vendor");
+      const isInternal =
+        type === "engineer" || (!isVendor && (type === "internal" || type === "internal_engineer"));
+
+      if (isInternal) {
+        internalEngineers.push({
+          id,
+          name,
+          fullname,
+          username,
+          user_type: "engineer",
+        });
+      } else if (isVendor) {
+        vendorEngineers.push({
+          id,
+          name,
+          fullname,
+          username,
+          user_type: "vendor_engineer",
+        });
+      }
+    });
+
     return NextResponse.json({
       success: true,
       date: fromDate,
@@ -272,6 +342,8 @@ export async function GET(request) {
       engineerTotalsTotal: engineerRes.data?.payload?.totalData || engineerTotals.length,
       completedTasks,
       completedTasksTotal: completedTasks.length,
+      internalEngineers,
+      vendorEngineers,
     });
   } catch (error) {
     const safe = safeError(error);

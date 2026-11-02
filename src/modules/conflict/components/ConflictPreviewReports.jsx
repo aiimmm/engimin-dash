@@ -1,24 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
-import { generateConflictDatesReport } from "@/modules/conflict-dates/lib";
-import { CheckIcon, CopyIcon, FileTextIcon } from "lucide-react";
+import { generateConflictReport } from "@/modules/conflict/lib";
+import { CheckCheckIcon, Copy01Icon, SchoolReportCardIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
 
-export const ConflictDatesPreviewReports = ({
-  rows = [],
-  selectedClusters = [],
-  dateRange = {},
-}) => {
+export const ConflictPreviewReports = ({ rows = [], selectedClusters = [], dateRange = {} }) => {
   const [copied, setCopied] = useState(false);
 
   const clusterFilteredRows = useMemo(() => {
@@ -27,7 +17,7 @@ export const ConflictDatesPreviewReports = ({
   }, [rows, selectedClusters]);
 
   const reportText = useMemo(() => {
-    return generateConflictDatesReport(clusterFilteredRows, {
+    return generateConflictReport(clusterFilteredRows, {
       selectedClusters,
       dateRange,
     });
@@ -70,29 +60,34 @@ export const ConflictDatesPreviewReports = ({
   };
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
-          <FileTextIcon className="size-5 text-muted-foreground" />
-          <CardTitle>Preview Laporan Conflict Dates</CardTitle>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <CardTitle className="flex items-center gap-2">
+          <HugeiconsIcon icon={SchoolReportCardIcon} className="size-5" />
+          Upcoming Check-in Report Preview
+        </CardTitle>
         <CardDescription>
-          Pratinjau langsung laporan berdasarkan cluster yang dipilih ({clusterLabel}).
+          Pratinjau laporan potensi konflik tanggal check-in mendatang berdasarkan cluster yang
+          dipilih.
         </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="relative rounded-lg border bg-muted/40 p-4 font-mono text-xs sm:text-sm text-foreground">
+      </div>
+      <Card>
+        <CardContent className="font-mono text-xs text-foreground">
           <pre className="whitespace-pre-wrap select-all font-mono leading-relaxed">
             {reportText}
           </pre>
-        </div>
-      </CardContent>
+        </CardContent>
+      </Card>
       <CardFooter>
         <Button onClick={handleCopy} className="gap-2 w-full">
-          {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-          {copied ? "Tersalin" : "Salin Laporan"}
+          {copied ? (
+            <HugeiconsIcon icon={CheckCheckIcon} className="size-4.5" />
+          ) : (
+            <HugeiconsIcon icon={Copy01Icon} className="size-4.5" />
+          )}
+          {copied ? "Tersalin" : "Salin Report"}
         </Button>
       </CardFooter>
-    </Card>
+    </div>
   );
 };

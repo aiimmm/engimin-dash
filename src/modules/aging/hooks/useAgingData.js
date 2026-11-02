@@ -76,7 +76,7 @@ export function useAgingData() {
           const conflictRes = await apiClient.get("/workorders", {
             params: {
               all: 1,
-              conflictDates: 1,
+              conflict: 1,
               dateFrom: conflictRange.from,
               dateTo: conflictRange.to,
             },

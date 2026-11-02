@@ -29,6 +29,7 @@ export function useCreatedDatesData() {
             createdToday: 1,
             dateFrom: dateRange.from,
             dateTo: dateRange.to || dateRange.from,
+            posDate: todayDate,
           },
         })
       ).data,

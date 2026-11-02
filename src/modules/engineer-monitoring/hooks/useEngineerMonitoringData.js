@@ -84,6 +84,14 @@ export const useEngineerMonitoringData = () => {
     () => query.data?.engineerTotals || [],
     [query.data?.engineerTotals],
   );
+  const internalEngineers = useMemo(
+    () => query.data?.internalEngineers || [],
+    [query.data?.internalEngineers],
+  );
+  const vendorEngineers = useMemo(
+    () => query.data?.vendorEngineers || [],
+    [query.data?.vendorEngineers],
+  );
 
   const synchronizedEngineerTotals = useMemo(() => {
     if (!tasks || tasks.length === 0) return rawEngineerTotals;
@@ -205,6 +213,8 @@ export const useEngineerMonitoringData = () => {
     summary,
     tasks,
     completedTasks,
+    internalEngineers,
+    vendorEngineers,
     synchronizedEngineerTotals,
   };
 };

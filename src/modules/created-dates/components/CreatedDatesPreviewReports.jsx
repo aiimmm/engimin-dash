@@ -1,17 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import { generateCreatedTodayReport } from "@/modules/created-dates/lib";
-import { CheckIcon, CopyIcon, FileTextIcon } from "lucide-react";
+import { CheckCheckIcon, Copy01Icon, SchoolReportCardIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
 
 export const CreatedDatesPreviewReports = ({
@@ -60,44 +54,45 @@ export const CreatedDatesPreviewReports = ({
       setCopied(true);
       toast.add({
         type: "success",
-        title: `Created today report for ${clusterLabel} copied to clipboard!`,
+        title: `Report berhasil disalin ke clipboard`,
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Error copying report:", error);
-      toast.add({ type: "error", title: "Failed to copy report to clipboard." });
+      toast.add({ type: "error", title: "Gagal menyalin report ke clipboard." });
     }
   };
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <div className="flex items-center gap-2">
-          <FileTextIcon className="size-5 text-muted-foreground" />
-          <CardTitle>Preview Laporan Created Today</CardTitle>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <CardTitle className="flex items-center gap-2">
+          <HugeiconsIcon icon={SchoolReportCardIcon} className="size-5" />
+          Preview Today&apos;s Created Report
+        </CardTitle>
         <CardDescription>
-          Pratinjau langsung laporan berdasarkan cluster yang dipilih ({clusterLabel}).
+          Pratinjau report work order yang dibuat berdasarkan cluster dan rentang tanggal yang
+          dipilih.
         </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="relative rounded-lg border bg-muted/40 p-4 font-mono text-xs sm:text-sm text-foreground">
+      </div>
+      <Card>
+        <CardContent className="font-mono text-xs text-foreground">
           <pre className="whitespace-pre-wrap select-all font-mono leading-relaxed">
             {reportText}
           </pre>
-        </div>
-      </CardContent>
+        </CardContent>
+      </Card>
       <CardFooter>
         <Button onClick={handleCopy} className="gap-2 w-full">
           {copied ? (
-            <CheckIcon className="size-4 text-emerald-600" />
+            <HugeiconsIcon icon={CheckCheckIcon} className="size-4.5" />
           ) : (
-            <CopyIcon className="size-4" />
+            <HugeiconsIcon icon={Copy01Icon} className="size-4.5" />
           )}
-          {copied ? "Tersalin" : "Salin Laporan"}
+          {copied ? "Tersalin" : "Salin Report"}
         </Button>
       </CardFooter>
-    </Card>
+    </div>
   );
 };
 

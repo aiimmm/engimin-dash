@@ -1,7 +1,7 @@
 // ============================================================================
 // API Route — /api/workorders/required-wo/sync-sheet (Google Sheets Sync Endpoint)
 // Purpose: Receive appointment, CI conflict, and aging rows and push to Google Sheets Webhook
-// Used by: /dashboard/appointment-dates & /dashboard/conflict-dates & /dashboard/aging & Background Sheet Sync
+// Used by: /dashboard/appointment-dates & /dashboard/conflict & /dashboard/aging & Background Sheet Sync
 // ============================================================================
 
 import { getSession } from "@/lib/auth/session";

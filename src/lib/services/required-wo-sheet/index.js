@@ -1,5 +1,5 @@
 // ============================================================================
-// LIB / API — /dashboard/appointment-dates & /dashboard/conflict-dates (Google Sheets Live Sync)
+// LIB / API — /dashboard/appointment-dates & /dashboard/conflict (Google Sheets Live Sync)
 // Purpose: Formats and syncs appointment and conflict work orders to a single combined Google Sheet table via webhook
 // Description: Prepares Indonesian tab names and tabular data payload for Google Sheets with Category dropdown values
 // ============================================================================

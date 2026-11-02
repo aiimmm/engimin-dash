@@ -25,7 +25,7 @@ export const ActionDatesHeader = ({ query, dateRange, setDateRange }) => {
         </Typography>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center justify-end gap-2 flex-wrap-reverse">
         <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
         <Button
           variant="default"

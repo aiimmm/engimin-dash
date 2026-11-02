@@ -20,7 +20,7 @@ export function yesterday() {
   return format(addDays(new Date(), -1), "yyyy-MM-dd");
 }
 
-export function defaultConflictDatesRange(baseDate = new Date()) {
+export function defaultConflictRange(baseDate = new Date()) {
   return {
     from: format(addDays(baseDate, 1), "yyyy-MM-dd"),
     to: format(addDays(baseDate, 7), "yyyy-MM-dd"),
@@ -60,7 +60,7 @@ export function isExcludedAppointmentDepartment(departmentName) {
   );
 }
 
-export function createConflictDatesPayload(filters = {}) {
+export function createConflictPayload(filters = {}) {
   const tDate = today();
   const tomorrowDate = tomorrow();
   const next7DaysDate = format(addDays(new Date(), 7), "yyyy-MM-dd");
@@ -312,12 +312,44 @@ export function checkHasPendingChurnWo(historyItems) {
  * @param {Date}        baseDate             - referensi "hari ini" (default: new Date())
  * @param {boolean}     hasPendingChurnHistory - apakah room punya WO Pending Churn aktif
  */
+/** Parse berbagai format date ke Date object (midnight) */
+export function parseToMidnight(raw) {
+  if (!raw || raw === "—" || raw === "-" || raw === true) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  if (/^\d{8}$/.test(s)) {
+    return new Date(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8)));
+  }
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) return new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+  const dmy = s.match(/^(\d{2})-(\d{2})-(\d{4})/);
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+export function fmtDate(value) {
+  if (!value || value === true || value === "—" || value === "-") return "—";
+  const str = String(value).trim();
+  if (/^\d{8}$/.test(str)) {
+    return `${str.slice(6, 8)}-${str.slice(4, 6)}-${str.slice(0, 4)}`;
+  }
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return str;
+}
+
 export function checkIsBreakContract(
   breakDateValue,
   endDateValue = null,
   baseDate = new Date(),
   hasPendingChurnHistory = false,
 ) {
+  // Support overloaded signature: checkIsBreakContract(breakDateValue, baseDate)
+  if (endDateValue instanceof Date) {
+    baseDate = endDateValue;
+    endDateValue = null;
+  }
   if (
     !breakDateValue ||
     breakDateValue === "—" ||
@@ -327,19 +359,6 @@ export function checkIsBreakContract(
     return false;
   const str = String(breakDateValue).trim();
   if (!str) return false;
-
-  /** Parse berbagai format date ke Date object (midnight) */
-  const parseToMidnight = (raw) => {
-    if (!raw) return null;
-    const s = String(raw).trim();
-    if (/^\d{8}$/.test(s)) {
-      return new Date(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8)));
-    }
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  };
 
   const breakDate = parseToMidnight(str);
   if (!breakDate) return false;
@@ -359,6 +378,81 @@ export function checkIsBreakContract(
 
   // Kondisi A: breakcontract_date <= hari ini → break sedang/sudah terjadi
   return breakDate.getTime() <= todayMidnight.getTime();
+}
+
+/**
+ * Menghitung status notifikasi Break Contract:
+ * - "upcoming": jika tanggal break contract jatuh besok (H-1 / sehari lagi)
+ * - "broken": jika tanggal break contract hari ini / sudah lewat, atau isBreak bernilai true
+ * - null: jika belum memasuki waktu break contract (> 1 hari) atau bukan break contract
+ */
+export function getBreakContractNotice(data, baseDate = new Date()) {
+  if (!data) return null;
+
+  const rawBreakDate = data.breakContractDate || data.breakcontract_date;
+  const rawEndDate = data.endContractDate || data.endcontract_date;
+  const isBreak = Boolean(data.isBreakContract ?? data.is_break_contract);
+
+  const hasValidBreakDateStr =
+    rawBreakDate && rawBreakDate !== "—" && rawBreakDate !== "-" && rawBreakDate !== true;
+
+  if (hasValidBreakDateStr) {
+    const targetBreakDate = parseToMidnight(rawBreakDate);
+    if (targetBreakDate) {
+      if (rawEndDate) {
+        const targetEndDate = parseToMidnight(rawEndDate);
+        if (targetEndDate && targetBreakDate.getTime() === targetEndDate.getTime()) {
+          return null;
+        }
+      }
+
+      const now = baseDate instanceof Date ? baseDate : new Date(baseDate);
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const diffMs = targetBreakDate.getTime() - todayMidnight.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      // Sehari lagi (misal: hari ini 31-10-2026, break besok 01-11-2026 -> diffDays === 1)
+      if (diffDays === 1) {
+        return {
+          type: "upcoming",
+          label: "Akan break contract pada:",
+          date: fmtDate(rawBreakDate),
+        };
+      }
+
+      // Sudah masuk tanggal break contract atau lewat (diffDays <= 0)
+      if (diffDays <= 0) {
+        return {
+          type: "broken",
+          label: "Break Contract:",
+          date: fmtDate(rawBreakDate),
+        };
+      }
+
+      // Belum memasuki waktu break contract (diffDays > 1)
+      if (isBreak) {
+        return {
+          type: "broken",
+          label: "Break Contract:",
+          date: fmtDate(rawBreakDate),
+        };
+      }
+
+      return null;
+    }
+  }
+
+  // Jika tidak ada string tanggal tapi isBreak bernilai true (misal hasPendingChurnHistory)
+  if (isBreak) {
+    return {
+      type: "broken",
+      label: "Break Contract:",
+      date: "Yes",
+    };
+  }
+
+  return null;
 }
 
 export function normalizeWorkOrder(item, index = 0) {
@@ -411,6 +505,14 @@ export function normalizeWorkOrder(item, index = 0) {
     roomStatus: first(item.roomstatuses_name, item.roomStatus, item.room_status),
     latestReservation: item.latestReservation || null,
     otaBookNumber: first(item.ota_book_number, item.otaBookNumber, item.co_ota_book_number),
+    // futureBookNumber: strictly dari ota_book_number saja (bukan co_ota_book_number).
+    // Digunakan untuk matching future reservation — co_ota_book_number adalah booking
+    // current guest yang sedang CO, bukan booking tamu berikutnya.
+    futureBookNumber: item.ota_book_number || item.futureBookNumber || null,
+    coOtaBookNumber: first(item.co_ota_book_number, item.coOtaBookNumber, null),
+    reffBookingId: first(item.reff_booking_id, item.reffBookingId, null),
+    rawCoDate: first(item.co_date, item.coDate, null),
+    rawCiDate: first(item.ci_date, item.ciDate, null),
     ciDate: first(item.ci_date, item.ciDate),
     coDate: first(item.co_date, item.coDate),
     isInHouse: first(item.is_in_house, item.isInHouse, "no"),
@@ -437,6 +539,20 @@ export function normalizeWorkOrder(item, index = 0) {
       item.tracing_schedule?.[0]?.id,
       item.tracingId,
     ),
+    reservationtraces_status:
+      item.reservationtraces_status ||
+      item.reservationtracesStatus ||
+      item.reservationtrace_status ||
+      item.traces_status ||
+      item.tracingSchedule?.[0]?.status ||
+      item.tracing_schedule?.[0]?.status ||
+      "",
+    rejected_wo_guarantee_date:
+      item.rejected_wo_guarantee_date ||
+      item.rejectedWoGuaranteeDate ||
+      item.tracingSchedule?.[0]?.rejected_wo_guarantee_date ||
+      item.tracing_schedule?.[0]?.rejected_wo_guarantee_date ||
+      null,
     oldRoomName: first(item.oldroomname, item.old_roomname, item.roomnumber, ""),
     isIncludeCloseOut: Number(
       first(
@@ -662,7 +778,7 @@ export function calculateDicStats(rows = []) {
   return stats;
 }
 
-export function calculateConflictDatesStats(rows = []) {
+export function calculateConflictStats(rows = []) {
   const genIds = new Set();
   const stats = {
     Total: rows.length,
@@ -829,7 +945,7 @@ export function checkIsInHouse(row = {}) {
 import {
   generateAgingReport,
   generateAppointmentReport,
-  generateConflictDatesReport,
+  generateConflictReport,
   generateCreatedTodayReport,
 } from "./reports";
 
@@ -842,7 +958,7 @@ export {
 export {
   generateAgingReport,
   generateAppointmentReport,
-  generateConflictDatesReport,
+  generateConflictReport,
   generateCreatedTodayReport,
   generateCreatedTodayReport as generateWorkOrderReport,
 };

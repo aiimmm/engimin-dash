@@ -1,20 +1,20 @@
 // ============================================================================
-// LIB / API — /dashboard/conflict-dates (Stats & Date Ranges)
-// Purpose: Conflict dates statistical summary calculation & default date range
+// LIB / API — /dashboard/conflict (Stats & Date Ranges)
+// Purpose: Conflict statistical summary calculation & default date range
 // Description: Computes total units, statuses, and DIC breakdowns for conflict orders
 // ============================================================================
 
 import { addDays, format } from "date-fns";
 import { getDepartmentCategory } from "@/modules/shared/work-orders/lib";
 
-export function defaultConflictDatesRange(baseDate = new Date()) {
+export function defaultConflictRange(baseDate = new Date()) {
   return {
     from: format(addDays(baseDate, 1), "yyyy-MM-dd"),
     to: format(addDays(baseDate, 7), "yyyy-MM-dd"),
   };
 }
 
-export function calculateConflictDatesStats(rows = []) {
+export function calculateConflictStats(rows = []) {
   const stats = {
     Total: rows.length,
     TotalUnit: new Set(rows.map((r) => r.roomCode).filter(Boolean)).size,

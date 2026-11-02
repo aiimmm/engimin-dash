@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  calculateConflictDatesStats,
+  calculateConflictStats,
   calculateDicStats,
   checkIsBreakContract,
   checkIsInHouse,
   createActionDatesPayload,
-  createConflictDatesPayload,
+  createConflictPayload,
   createCreatedTodayPayload,
   createWorkOrderPayload,
-  defaultConflictDatesRange,
+  defaultConflictRange,
   EXTRA_DEPARTMENT_QUERIES,
   EXCLUDED_CONFLICT_ARTICLES,
   generateAppointmentReport,
-  generateConflictDatesReport,
+  generateConflictReport,
   generateCreatedTodayReport,
   generateWorkOrderReport,
+  getBreakContractNotice,
   getDepartmentCategory,
   getRoomStatusCategory,
   hasScheduledActionTime,
@@ -552,14 +553,14 @@ describe("work order adapters", () => {
   });
 
   describe("conflict dates adapters and stats", () => {
-    it("defaultConflictDatesRange generates date range 1 to 7 days ahead", () => {
+    it("defaultConflictRange generates date range 1 to 7 days ahead", () => {
       const base = new Date("2026-09-14T00:00:00");
-      const range = defaultConflictDatesRange(base);
+      const range = defaultConflictRange(base);
       expect(range).toEqual({ from: "2026-09-15", to: "2026-09-21" });
     });
 
-    it("creates required conflict dates payload with defaults", () => {
-      const payload = createConflictDatesPayload({
+    it("creates required conflict payload with defaults", () => {
+      const payload = createConflictPayload({
         cluster: "Cluster A",
         dateFrom: "2026-09-15",
         dateTo: "2026-09-21",
@@ -596,7 +597,7 @@ describe("work order adapters", () => {
       expect(isExcludedConflictArticle("")).toBe(false);
     });
 
-    it("calculateConflictDatesStats calculates all required conflict stats", () => {
+    it("calculateConflictStats calculates all required conflict stats", () => {
       const rows = [
         { roomCode: "GEN-01", status: "New", department: "engineering", roomStatus: "Major" },
         { roomCode: "GEN-01", status: "Active", department: "operational", roomStatus: "Minor" },
@@ -608,7 +609,7 @@ describe("work order adapters", () => {
         { roomCode: "GEN-07", status: "New", department: "Unassigned", roomStatus: "" },
       ];
 
-      const stats = calculateConflictDatesStats(rows);
+      const stats = calculateConflictStats(rows);
       expect(stats).toEqual({
         Total: 8,
         TotalUnit: 7,
@@ -630,7 +631,7 @@ describe("work order adapters", () => {
       });
     });
 
-    it("generateConflictDatesReport creates formatted report for conflict dates", () => {
+    it("generateConflictReport creates formatted report for conflict dates", () => {
       const rows = [
         {
           roomCode: "GEN-A",
@@ -647,7 +648,7 @@ describe("work order adapters", () => {
           roomStatus: "Minor",
         },
       ];
-      const report = generateConflictDatesReport(rows, {
+      const report = generateConflictReport(rows, {
         selectedClusters: ["Cluster B"],
         dateRange: { from: "2026-09-15", to: "2026-09-21" },
       });
@@ -700,6 +701,70 @@ describe("work order adapters", () => {
       });
       expect(pastWO.breakContractDate).toBe("2026-09-19 00:00:00");
       expect(pastWO.isBreakContract).toBe(true);
+    });
+  });
+
+  describe("getBreakContractNotice rules", () => {
+    const today = new Date("2026-10-31T12:00:00");
+
+    it("returns upcoming notice if break contract date is tomorrow (diffDays === 1)", () => {
+      const notice = getBreakContractNotice({ breakContractDate: "2026-11-01 00:00:00" }, today);
+      expect(notice).toEqual({
+        type: "upcoming",
+        label: "Akan break contract pada:",
+        date: "01-11-2026",
+      });
+    });
+
+    it("returns broken notice if break contract date is today (diffDays === 0)", () => {
+      const notice = getBreakContractNotice({ breakContractDate: "2026-10-31 00:00:00" }, today);
+      expect(notice).toEqual({
+        type: "broken",
+        label: "Break Contract:",
+        date: "31-10-2026",
+      });
+    });
+
+    it("returns broken notice if break contract date has passed (diffDays < 0)", () => {
+      const notice = getBreakContractNotice({ breakContractDate: "2026-10-30 00:00:00" }, today);
+      expect(notice).toEqual({
+        type: "broken",
+        label: "Break Contract:",
+        date: "30-10-2026",
+      });
+    });
+
+    it("returns null if break contract date is more than 1 day in the future", () => {
+      const notice = getBreakContractNotice({ breakContractDate: "2026-11-05 00:00:00" }, today);
+      expect(notice).toBeNull();
+    });
+
+    it("returns null if breakcontract_date equals endcontract_date (normal checkout)", () => {
+      const notice = getBreakContractNotice(
+        {
+          breakContractDate: "2026-11-01 00:00:00",
+          endContractDate: "2026-11-01 00:00:00",
+        },
+        today,
+      );
+      expect(notice).toBeNull();
+    });
+
+    it("returns broken notice with date 'Yes' if isBreakContract is true without valid date", () => {
+      const notice = getBreakContractNotice(
+        { isBreakContract: true, breakContractDate: null },
+        today,
+      );
+      expect(notice).toEqual({
+        type: "broken",
+        label: "Break Contract:",
+        date: "Yes",
+      });
+    });
+
+    it("returns null when no break date and not broken", () => {
+      expect(getBreakContractNotice({}, today)).toBeNull();
+      expect(getBreakContractNotice({ breakContractDate: "—" }, today)).toBeNull();
     });
   });
 });

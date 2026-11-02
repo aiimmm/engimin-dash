@@ -1,6 +1,6 @@
 // ============================================================================
-// LIB / API — /dashboard/conflict-dates (Module Entry Point)
-// Purpose: Re-export all conflict-dates helpers, payload builders, stats & reports
+// LIB / API — /dashboard/conflict (Module Entry Point)
+// Purpose: Re-export all conflict helpers, payload builders, stats & reports
 // ============================================================================
 
 export * from "./payload";

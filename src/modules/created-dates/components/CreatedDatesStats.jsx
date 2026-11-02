@@ -2,13 +2,13 @@ import { StatsCard } from "@/modules/shared/components/DashboardComponents";
 import {
   ArrowBigDownDashIcon,
   ArrowBigUpDashIcon,
-  ArrowDataTransferHorizontalIcon,
   BrushCleaningIcon,
-  Building02Icon,
+  Building03Icon,
   ComplaintIcon,
   CustomerService01Icon,
   GearsIcon,
   LicenseMaintenanceIcon,
+  MinusSignCircleIcon,
   ShoppingCart01Icon,
   StoreManagement01Icon,
   Summation01Icon,
@@ -51,7 +51,7 @@ export const CreatedDatesStats = ({ stats, selectedClusters = [] }) => {
         label="ORM"
         value={safeStats.ORM}
         helperText="ORM department"
-        icon={Building02Icon}
+        icon={Building03Icon}
       />
 
       <StatsCard
@@ -114,7 +114,7 @@ export const CreatedDatesStats = ({ stats, selectedClusters = [] }) => {
         label="No Room Status"
         value={safeStats.NoRoomStatus}
         helperText="Status not specified"
-        icon={ArrowDataTransferHorizontalIcon}
+        icon={MinusSignCircleIcon}
       />
     </div>
   );

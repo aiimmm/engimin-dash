@@ -1,11 +1,11 @@
-import { ConflictDatesModules } from "@/modules/conflict-dates";
+import { ConflictModules } from "@/modules/conflict";
 
-export const metadata = { title: "Conflict Dates" };
+export const metadata = { title: "Conflict" };
 
-export default function ConflictDatesPage() {
+export default function ConflictPage() {
   return (
     <>
-      <ConflictDatesModules />
+      <ConflictModules />
     </>
   );
 }

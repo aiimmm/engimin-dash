@@ -37,17 +37,14 @@ export function ReservationCellDetails({ row }) {
   const coFmt = fmtCheckDate(currentRes.checkoutDate);
 
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-48 flex-col items-center gap-1 py-1">
+    <div className="mx-auto flex w-full flex-col items-center gap-1">
       {currentRes.genId && (
         <Badge
           variant="secondary"
           className="flex border-border items-center truncate text-xs leading-none gap-1.5"
         >
           <HugeiconsIcon icon={ContactBookIcon} className="size-4 shrink-0 text-muted-foreground" />
-
-          {/* <Typography as="p" className="truncate text-xs font-semibold leading-none"> */}
           {currentRes.genId}
-          {/* </Typography> */}
         </Badge>
       )}
 
@@ -67,7 +64,7 @@ export function ReservationCellDetails({ row }) {
           <div className="flex w-full min-w-0 items-center justify-center gap-1.5">
             <HugeiconsIcon icon={User02Icon} className="size-3.5 shrink-0 text-muted-foreground" />
 
-            <Typography as="p" className="min-w-0 truncate text-xs text-muted-foreground">
+            <Typography as="p" className="min-w-0 truncate text-[10px] text-muted-foreground">
               {currentRes.guestName}
             </Typography>
           </div>
@@ -77,7 +74,7 @@ export function ReservationCellDetails({ row }) {
           <div className="flex w-full min-w-0 items-center justify-center gap-1.5">
             <HugeiconsIcon icon={PhoneIcon} className="size-3.5 shrink-0 text-muted-foreground" />
 
-            <Typography as="p" className="min-w-0 truncate text-xs text-muted-foreground">
+            <Typography as="p" className="min-w-0 truncate text-[10px] text-muted-foreground">
               {currentRes.contactPhone}
             </Typography>
           </div>

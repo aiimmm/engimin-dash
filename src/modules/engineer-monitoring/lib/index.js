@@ -34,19 +34,22 @@ export function createCompletedWorkOrdersPayload(filters = {}) {
 }
 
 /**
- * Calculate total CTO price for a single WO item.
- * Uses ctoPrice (base + markup) from ctoList or fallback to root ctoPrice.
+ * Calculate total CTO price / engineer revenue for a single WO item.
+ * Supports:
+ * 1. Standard CTO (ctoPrice or sum of ctoList)
+ * 2. Payment Link (subTotalPrice / jasa from paymentList or engineeringPropertyFee)
+ * 3. Temporary Expense / PO (cto_price / price from tempExpense)
+ * Excludes: Pure Post Charge guest penalties without engineer labor/expense.
  */
 export function calculateWoCtoPrice(item) {
   if (!item) return 0;
 
-  // 1. Prefer item.ctoPrice if directly provided
+  // 1. PRIORITAS 1: Form CTO Standar (jika ada ctoPrice / ctoList)
   if (item.ctoPrice !== null && item.ctoPrice !== undefined && item.ctoPrice !== "") {
     const parsed = Number(item.ctoPrice);
-    if (!isNaN(parsed) && parsed >= 0) return parsed;
+    if (!isNaN(parsed) && parsed > 0) return parsed;
   }
 
-  // 2. If ctoList is present and is an array, sum ctoPrice (or ctoBasePrice + ctoMarkupPrice)
   if (Array.isArray(item.ctoList) && item.ctoList.length > 0) {
     const listSum = item.ctoList.reduce((acc, cto) => {
       const price =
@@ -56,6 +59,49 @@ export function calculateWoCtoPrice(item) {
       return acc + (isNaN(price) ? 0 : price);
     }, 0);
     if (listSum > 0) return listSum;
+  }
+
+  // 2. PRIORITAS 2: Payment Link (Jasa / Perbaikan berbayar oleh Guest/Owner termasuk PPN)
+  if (Array.isArray(item.paymentList) && item.paymentList.length > 0) {
+    const sumPayment = item.paymentList.reduce((acc, p) => {
+      const val = Number(p.price ?? p.subTotalPrice ?? p.jasa ?? p.feeAmount ?? 0);
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+    if (sumPayment > 0) return sumPayment;
+  }
+
+  if (
+    item.engineeringPropertyFee &&
+    Array.isArray(item.engineeringPropertyFee.items) &&
+    item.engineeringPropertyFee.items.length > 0
+  ) {
+    const sumFeeItems = item.engineeringPropertyFee.items.reduce((acc, p) => {
+      const val = Number(p.price ?? p.subTotalPrice ?? p.jasa ?? 0);
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+    if (sumFeeItems > 0) return sumFeeItems;
+  }
+
+  if (item.totalPaymentFeeAmount !== null && item.totalPaymentFeeAmount !== undefined) {
+    const parsed = Number(item.totalPaymentFeeAmount);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  if (
+    item.engineeringPropertyFee?.feeAmount !== null &&
+    item.engineeringPropertyFee?.feeAmount !== undefined
+  ) {
+    const parsed = Number(item.engineeringPropertyFee.feeAmount);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+
+  // 3. PRIORITAS 3: Temporary Expense / PO (Belanja Material Luar / Penggantian Aset)
+  if (Array.isArray(item.tempExpense) && item.tempExpense.length > 0) {
+    const sumTemp = item.tempExpense.reduce((acc, t) => {
+      const val = Number(t.cto_price ?? t.price ?? 0);
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+    if (sumTemp > 0) return sumTemp;
   }
 
   return 0;
@@ -115,17 +161,26 @@ export function normalizeCompletedWoItem(item, idx = 0) {
 
   const ctoPrice = calculateWoCtoPrice(item);
   const ctoList = Array.isArray(item.ctoList) ? item.ctoList : [];
-  const ctoLength = Number(item.ctoLength ?? ctoList.length);
+  const ctoLength = Number(
+    item.ctoLength ??
+      (ctoList.length > 0
+        ? ctoList.length
+        : item.paymentList?.length > 0
+          ? item.paymentList.length
+          : item.tempExpense?.length || (ctoPrice > 0 ? 1 : 0)),
+  );
   const ctoStatus = item.ctoStatus || (ctoPrice > 0 ? "APPROVED" : "—");
   const isCTOApproved = Number(item.isCTOApproved ?? (ctoPrice > 0 ? 1 : 0));
 
   const note = item.note || item.remark || tracing.note || "—";
 
-  // Extract completedUser: prefer ctoList[0]?.created_user, fallback to tracing.complete_user / completed_user / complete_by
-  const firstCto = ctoList[0] || {};
+  // Extract completedUser: prefer ctoList / tempExpense / paymentList, fallback to tracing / item
+  const firstCto = ctoList[0] || item.tempExpense?.[0] || item.paymentList?.[0] || {};
   const completedUser =
     firstCto.created_user ||
     firstCto.createdUser ||
+    firstCto.created_by ||
+    firstCto.createdBy ||
     item.complete_user ||
     item.completed_user ||
     item.completeUser ||
@@ -136,15 +191,40 @@ export function normalizeCompletedWoItem(item, idx = 0) {
     item.createdUser ||
     "—";
 
-  // Extract chargeTo: prefer ctoList[0]?.chargeTo, fallback to item.chargeTo / item.charge_to
-  const chargeTo =
-    firstCto.chargeTo || firstCto.charge_to || item.chargeTo || item.charge_to || "—";
+  // Extract paymentLinkTo: check engineeringPropertyFee.miscPayment.paymentLinkTo or miscPayment.paymentLinkTo
+  const paymentLinkTo =
+    item.engineeringPropertyFee?.miscPayment?.paymentLinkTo ||
+    item.miscPayment?.paymentLinkTo ||
+    null;
+
+  // Extract chargeTo: prefer paymentLinkTo (Customer/Owner), fallback to firstCto / item
+  const rawChargeTo =
+    paymentLinkTo ||
+    firstCto.chargeTo ||
+    firstCto.charge_to ||
+    item.chargeTo ||
+    item.charge_to ||
+    (item.paymentList?.length > 0 ? "Customer" : "—");
+
+  const chargeTo = String(rawChargeTo || "—").trim();
+
+  const engineerType =
+    item.engineer_type ||
+    item.user_type ||
+    item.engineerType ||
+    item.userType ||
+    tracing.engineer_type ||
+    tracing.user_type ||
+    "";
 
   return {
     id: String(item.id || item.workorders_id || woNumber || idx),
     woNumber,
     woStatus: item.status || tracing.status || "Completed",
     engineer: engineerName ? String(engineerName).trim() : "UNASSIGNED",
+    engineer_username: String(tracing.eng1name || item.eng1name || "").trim(),
+    currentEngineerName: String(item.currentEngineerName || item.engineerName || "").trim(),
+    engineer_type: String(engineerType).trim().toLowerCase(),
     cluster: String(cluster).trim(),
     roomCode: String(roomCode).trim(),
     towerName: String(towerName).trim(),

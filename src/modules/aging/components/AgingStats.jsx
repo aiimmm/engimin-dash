@@ -1,22 +1,22 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
 import {
-  AlertTriangleIcon,
-  Building2Icon,
+  Alert02Icon,
+  Building03Icon,
   ClipboardListIcon,
-  ClockIcon,
-  CogIcon,
-  HeadphonesIcon,
-  HelpCircleIcon,
-  HomeIcon,
-  InfoIcon,
-  MinusCircleIcon,
+  Clock01Icon,
+  CustomerService01Icon,
+  Home07Icon,
+  InformationCircleIcon,
+  MinusSignCircleIcon,
   PackageIcon,
+  Settings01Icon,
   ShieldCheckIcon,
-  ShoppingBagIcon,
-  UserCheckIcon,
-  UserXIcon,
-  WrenchIcon,
-} from "lucide-react";
+  ShoppingBag01Icon,
+  UserCheck01Icon,
+  UserGroupIcon,
+  UserRemove01Icon,
+  Wrench01Icon,
+} from "@hugeicons/core-free-icons";
 
 export const AgingStats = ({ stats }) => {
   const safeStats = stats || {
@@ -40,104 +40,102 @@ export const AgingStats = ({ stats }) => {
   };
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <StatsCard
         label="Total Aging WO"
         value={safeStats.Total}
-        helperText="All Aging Work Orders"
+        helperText="All aging work orders"
         icon={ClipboardListIcon}
       />
       <StatsCard
         label="Total Unit"
         value={safeStats.TotalUnit}
-        helperText="Total Unique Units / GenID"
-        icon={HomeIcon}
+        helperText="Unique units (GenID)"
+        icon={Home07Icon}
       />
       <StatsCard
         label="Assigned"
         value={safeStats.Assigned}
-        helperText="Assigned to Engineer"
-        icon={UserCheckIcon}
+        helperText="Assigned to engineers"
+        icon={UserCheck01Icon}
       />
       <StatsCard
         label="Unassigned"
         value={safeStats.UnassignedEngineer}
-        helperText="Unassigned Engineer"
-        icon={UserXIcon}
+        helperText="Awaiting engineer assignment"
+        icon={UserRemove01Icon}
       />
-
       <StatsCard
         label="Engineering"
         value={safeStats.Engineering}
-        helperText="Total Work Orders Engineering Dept"
-        icon={WrenchIcon}
+        helperText="Engineering work orders"
+        icon={Wrench01Icon}
       />
       <StatsCard
         label="ORM"
         value={safeStats.ORM}
-        helperText="Total Work Orders ORM Dept"
-        icon={Building2Icon}
+        helperText="ORM work orders"
+        icon={Building03Icon}
       />
       <StatsCard
         label="Operational"
         value={safeStats.Operational}
-        helperText="Total Work Orders Operational Dept"
-        icon={CogIcon}
+        helperText="Operational work orders"
+        icon={Settings01Icon}
       />
       <StatsCard
         label="DIC CS"
         value={safeStats.CS}
-        helperText="Total Work Orders CS Dept"
-        icon={HeadphonesIcon}
+        helperText="Customer Service work orders"
+        icon={CustomerService01Icon}
       />
       <StatsCard
         label="Traveliomart"
         value={safeStats.Traveliomart}
-        helperText="Total Work Orders Traveliomart Dept"
-        icon={ShoppingBagIcon}
+        helperText="Traveliomart work orders"
+        icon={ShoppingBag01Icon}
       />
       <StatsCard
         label="Technical Auditor"
         value={safeStats.TechnicalAuditor}
-        helperText="Total Work Orders Technical Auditor Dept"
+        helperText="Technical audit work orders"
         icon={ShieldCheckIcon}
       />
       <StatsCard
         label="Admin Inventory"
         value={safeStats.AdminInventory}
-        helperText="Total Work Orders Admin Inventory Dept"
+        helperText="Inventory work orders"
         icon={PackageIcon}
       />
       <StatsCard
         label="Unassigned DIC"
         value={safeStats.Unassigned}
-        helperText="Total Work Orders Unassigned Dept"
-        icon={HelpCircleIcon}
+        helperText="Work orders without a DIC"
+        icon={UserGroupIcon}
       />
-
       <StatsCard
         label="Status: Minor"
         value={safeStats.Minor}
-        helperText="Total Work Orders with Minor Room Status"
-        icon={InfoIcon}
+        helperText="Minor room issues"
+        icon={InformationCircleIcon}
       />
       <StatsCard
         label="Status: Major"
         value={safeStats.Major}
-        helperText="Total Work Orders with Major Room Status"
-        icon={AlertTriangleIcon}
+        helperText="Major room issues"
+        icon={Alert02Icon}
       />
       <StatsCard
         label="Status: -"
         value={safeStats.NoRoomStatus}
-        helperText="Total Work Orders with No Room Status"
-        icon={MinusCircleIcon}
+        helperText="No room status recorded"
+        icon={MinusSignCircleIcon}
       />
       <StatsCard
         label="On Progress"
         value={safeStats.OnProgress}
-        helperText="Work Orders Currently On Progress"
-        icon={ClockIcon}
+        helperText="Work orders in progress"
+        icon={Clock01Icon}
       />
     </div>
   );

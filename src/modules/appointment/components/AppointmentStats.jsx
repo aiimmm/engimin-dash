@@ -1,6 +1,6 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
 import {
-  Building02Icon,
+  ApartmentIcon,
   CalendarCheckIn01Icon,
   UserCheck01Icon,
   UserSearch01Icon,
@@ -29,7 +29,7 @@ export const AppointmentStats = ({ rows, stats }) => {
         label="Total Units"
         value={unitCount}
         helperText="Unique units by GenID"
-        icon={Building02Icon}
+        icon={ApartmentIcon}
       />
       <StatsCard
         label="Assigned"

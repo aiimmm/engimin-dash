@@ -159,5 +159,5 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
   return lines.join("\n").trim();
 }
 
-export { generateConflictDatesReport } from "@/modules/conflict-dates/lib";
+export { generateConflictReport } from "@/modules/conflict/lib";
 export { generateAgingReport } from "@/modules/aging/lib";

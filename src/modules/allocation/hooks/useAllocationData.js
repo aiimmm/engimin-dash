@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "@/components/ui/toast";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
 import { tomorrow } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";

@@ -5,7 +5,7 @@
 //   - /dashboard/appointment-dates (?appointment)
 //   - /dashboard/created-dates (?createdToday=1)
 //   - /dashboard/action-dates (?actionDates=1)
-//   - /dashboard/conflict-dates (?conflictDates=1)
+//   - /dashboard/conflict (?conflict=1)
 // ============================================================================
 
 import {
@@ -19,10 +19,10 @@ import { safeError } from "@/lib/security";
 import { createActionDatesPayload } from "@/modules/action-dates/lib";
 import { createAgingPayload, defaultAgingDateRange } from "@/modules/aging/lib";
 import {
-  createConflictDatesPayload,
-  defaultConflictDatesRange,
+  createConflictPayload,
+  defaultConflictRange,
   isExcludedConflictArticle,
-} from "@/modules/conflict-dates/lib";
+} from "@/modules/conflict/lib";
 import { createCreatedTodayPayload } from "@/modules/created-dates/lib";
 import {
   checkHasPendingChurnWo,
@@ -46,7 +46,7 @@ export async function GET(request) {
 
   const query = request.nextUrl.searchParams;
   const isAging = query.get("aging") === "1";
-  const isConflictDates = query.get("conflictDates") === "1";
+  const isConflict = query.get("conflict") === "1";
   const isCreatedToday = query.get("createdToday") === "1";
   const isActionDates = query.get("actionDates") === "1";
   const fetchAll = query.get("all") === "1";
@@ -95,20 +95,64 @@ export async function GET(request) {
       ];
 
       if (roomIds.length) {
-        const summaries = await mapWithConcurrency(roomIds, 6, async (roomId) => [
-          roomId,
-          await getRoomBookingSummary(session, roomId).catch(() => null),
+        const breakContractRoomIds = [
+          ...new Set(
+            rows
+              .filter((row) => Boolean(row.breakContractDate))
+              .map((row) => row.foRoomsId)
+              .filter((id) => Number.isFinite(Number(id))),
+          ),
+        ];
+
+        const [summaries, woHistories] = await Promise.all([
+          mapWithConcurrency(roomIds, 6, async (roomId) => [
+            roomId,
+            await getRoomBookingSummary(session, roomId).catch(() => null),
+          ]),
+          mapWithConcurrency(breakContractRoomIds, 6, async (roomId) => [
+            roomId,
+            await getRoomWoHistory(session, roomId).catch(() => []),
+          ]),
         ]);
+
         const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
+        const pendingChurnByRoom = new Map(
+          woHistories.map(([roomId, history]) => [roomId, checkHasPendingChurnWo(history)]),
+        );
+
         const enrichedRows = rows.map((row) => {
           const summary = bookingByRoom.get(row.foRoomsId);
-          const active = summary?.active || null;
-          const latest = summary?.latest || null;
+          // Gunakan futureBookNumber (strict dari ota_book_number) bukan otaBookNumber
+          // yang bisa fallback ke co_ota_book_number (booking current guest).
+          const matchedFuture = row.futureBookNumber
+            ? summary?.bookingsByGenId?.[row.futureBookNumber]
+            : null;
+          const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+
+          // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
+          // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
+          // maka co_date dari WO response tidak dipakai — CO date future belum diketahui.
+          const resolvedCoDate =
+            row.futureBookNumber && !matchedFuture
+              ? null
+              : matchedFuture?.checkoutDate || row.coDate;
+
           return {
             ...row,
-            activeReservation: active,
-            latestReservation: latest,
-            booking: active || latest || null,
+            activeReservation: summary?.active || null,
+            latestReservation: summary?.latest || null,
+            futureReservation: matchedFuture || null,
+            booking: summary?.active || null,
+            ciDate: matchedFuture?.checkinDate || row.ciDate,
+            coDate: resolvedCoDate,
+            hasPendingChurnHistory,
+            // Recompute isBreakContract dengan info Pending Churn
+            isBreakContract: checkIsBreakContract(
+              row.breakContractDate,
+              row.endContractDate,
+              new Date(),
+              hasPendingChurnHistory,
+            ),
           };
         });
         return NextResponse.json({ rows: enrichedRows, total: enrichedRows.length });
@@ -116,13 +160,13 @@ export async function GET(request) {
 
       return NextResponse.json({ rows, total: rows.length });
     }
-    if (isConflictDates) {
-      const dateRange = defaultConflictDatesRange();
+    if (isConflict) {
+      const dateRange = defaultConflictRange();
       const fromDate = query.get("dateFrom") || dateRange.from;
       const toDate = query.get("dateTo") || dateRange.to;
       const posDate = query.get("posDate") || query.get("pos_date") || today();
 
-      const payload = createConflictDatesPayload({
+      const payload = createConflictPayload({
         ...baseFilters,
         dateFrom: fromDate,
         dateTo: toDate,
@@ -155,15 +199,28 @@ export async function GET(request) {
           const summary = bookingByRoom.get(row.foRoomsId);
           const active = summary?.active || null;
           const latest = summary?.latest || null;
-          const matchedFuture = row.otaBookNumber
-            ? summary?.bookingsByGenId?.[row.otaBookNumber]
+          // Gunakan futureBookNumber (strict dari ota_book_number) bukan otaBookNumber
+          // yang bisa fallback ke co_ota_book_number (booking current guest).
+          const matchedFuture = row.futureBookNumber
+            ? summary?.bookingsByGenId?.[row.futureBookNumber]
             : null;
+
+          // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
+          // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
+          // maka co_date dari WO response tidak dipakai — CO date future belum diketahui.
+          const resolvedCoDate =
+            row.futureBookNumber && !matchedFuture
+              ? null
+              : matchedFuture?.checkoutDate || row.coDate;
+
           return {
             ...row,
             activeReservation: active,
             latestReservation: latest,
             futureReservation: matchedFuture || null,
             booking: active || matchedFuture || latest || null,
+            ciDate: matchedFuture?.checkinDate || row.ciDate,
+            coDate: resolvedCoDate,
           };
         });
         return NextResponse.json({ rows: enrichedRows, total: enrichedRows.length });
@@ -233,10 +290,18 @@ export async function GET(request) {
 
       const enrichedRows = rows.map((row) => {
         const summary = bookingByRoom.get(row.foRoomsId);
-        const matchedFuture = row.otaBookNumber
-          ? summary?.bookingsByGenId?.[row.otaBookNumber]
+        // Gunakan futureBookNumber (strict dari ota_book_number) bukan otaBookNumber
+        // yang bisa fallback ke co_ota_book_number (booking current guest).
+        const matchedFuture = row.futureBookNumber
+          ? summary?.bookingsByGenId?.[row.futureBookNumber]
           : null;
         const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+
+        // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
+        // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
+        // maka co_date dari WO response tidak dipakai — CO date future belum diketahui.
+        const resolvedCoDate =
+          row.futureBookNumber && !matchedFuture ? null : matchedFuture?.checkoutDate || row.coDate;
 
         return {
           ...row,
@@ -245,7 +310,7 @@ export async function GET(request) {
           futureReservation: matchedFuture || null,
           booking: summary?.active || null,
           ciDate: matchedFuture?.checkinDate || row.ciDate,
-          coDate: matchedFuture?.checkoutDate || row.coDate,
+          coDate: resolvedCoDate,
           hasPendingChurnHistory,
           // Recompute isBreakContract dengan info Pending Churn
           isBreakContract: checkIsBreakContract(
@@ -288,17 +353,66 @@ export async function GET(request) {
       ];
 
       if (roomIds.length) {
-        const summaries = await mapWithConcurrency(roomIds, 6, async (roomId) => [
-          roomId,
-          await getRoomBookingSummary(session, roomId).catch(() => null),
+        const breakContractRoomIds = [
+          ...new Set(
+            rows
+              .filter((row) => Boolean(row.breakContractDate))
+              .map((row) => row.foRoomsId)
+              .filter((id) => Number.isFinite(Number(id))),
+          ),
+        ];
+
+        const [summaries, woHistories] = await Promise.all([
+          mapWithConcurrency(roomIds, 6, async (roomId) => [
+            roomId,
+            await getRoomBookingSummary(session, roomId).catch(() => null),
+          ]),
+          mapWithConcurrency(breakContractRoomIds, 6, async (roomId) => [
+            roomId,
+            await getRoomWoHistory(session, roomId).catch(() => []),
+          ]),
         ]);
+
         const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
-        const enrichedRows = rows.map((row) => ({
-          ...row,
-          activeReservation: bookingByRoom.get(row.foRoomsId)?.active || null,
-          latestReservation: bookingByRoom.get(row.foRoomsId)?.latest || null,
-          booking: bookingByRoom.get(row.foRoomsId)?.active || null,
-        }));
+        const pendingChurnByRoom = new Map(
+          woHistories.map(([roomId, history]) => [roomId, checkHasPendingChurnWo(history)]),
+        );
+
+        const enrichedRows = rows.map((row) => {
+          const summary = bookingByRoom.get(row.foRoomsId);
+          // Gunakan futureBookNumber (strict dari ota_book_number) bukan otaBookNumber
+          // yang bisa fallback ke co_ota_book_number (booking current guest).
+          const matchedFuture = row.futureBookNumber
+            ? summary?.bookingsByGenId?.[row.futureBookNumber]
+            : null;
+          const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+
+          // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
+          // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
+          // maka co_date dari WO response tidak dipakai — CO date future belum diketahui.
+          const resolvedCoDate =
+            row.futureBookNumber && !matchedFuture
+              ? null
+              : matchedFuture?.checkoutDate || row.coDate;
+
+          return {
+            ...row,
+            activeReservation: summary?.active || null,
+            latestReservation: summary?.latest || null,
+            futureReservation: matchedFuture || null,
+            booking: summary?.active || null,
+            ciDate: matchedFuture?.checkinDate || row.ciDate,
+            coDate: resolvedCoDate,
+            hasPendingChurnHistory,
+            // Recompute isBreakContract dengan info Pending Churn
+            isBreakContract: checkIsBreakContract(
+              row.breakContractDate,
+              row.endContractDate,
+              new Date(),
+              hasPendingChurnHistory,
+            ),
+          };
+        });
         return NextResponse.json({ rows: enrichedRows, total: enrichedRows.length });
       }
 

@@ -1,6 +1,6 @@
 // ============================================================================
-// LIB / API — /dashboard/conflict-dates (Report Generator)
-// Purpose: WhatsApp text report generator for conflict dates work orders
+// LIB / API — /dashboard/conflict (Report Generator)
+// Purpose: WhatsApp text report generator for conflict work orders
 // Description: Formats overall and per-DIC stats with clean text headers and blank line spacing
 // ============================================================================
 
@@ -96,9 +96,9 @@ function computeMetrics(rows = [], todayStr = today()) {
 }
 
 /**
- * Generate Report Conflict Dates for All Clusters or specific cluster(s).
+ * Generate Report Conflict for All Clusters or specific cluster(s).
  */
-export function generateConflictDatesReport(rows = [], options = {}) {
+export function generateConflictReport(rows = [], options = {}) {
   const { selectedClusters = [], dateRange = {}, date = "" } = options;
   let clusterTitleHeader = "REPORT ALL CLUSTER";
   if (selectedClusters.length > 0) {

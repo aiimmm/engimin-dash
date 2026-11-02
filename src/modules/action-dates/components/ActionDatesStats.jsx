@@ -1,5 +1,5 @@
 import { StatsCard } from "@/modules/shared/components/DashboardComponents";
-import { ClipboardListIcon } from "@hugeicons/core-free-icons";
+import { ClipboardListIcon, Clock01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 
 export const ActionDatesStats = ({ rows = [], selectedClusters = [] }) => {
   const clusterHelperText = selectedClusters.length > 0 ? "Selected clusters" : "All clusters";
@@ -33,13 +33,13 @@ export const ActionDatesStats = ({ rows = [], selectedClusters = [] }) => {
         label="New"
         value={newCount}
         helperText="Total WO Status New"
-        icon={ClipboardListIcon}
+        icon={InformationCircleIcon}
       />
       <StatsCard
         label="On Progress"
         value={onProgressCount}
         helperText="Total WO Status On Progress"
-        icon={ClipboardListIcon}
+        icon={Clock01Icon}
       />
     </div>
   );

@@ -1,12 +1,12 @@
 "use client";
 
-import { ConflictDatesHeader } from "./ConflictDatesHeader";
-import { ConflictDatesPreviewReports } from "./ConflictDatesPreviewReports";
-import { ConflictDatesStats } from "./ConflictDatesStats";
-import { ConflictDatesTable } from "./ConflictDatesTable";
-import { useConflictDatesData } from "../hooks/useConflictDatesData";
+import { Separator } from "@/components/ui/separator";
+import { useConflictData } from "../hooks/useConflictData";
+import { ConflictHeader } from "./ConflictHeader";
+import { ConflictStats } from "./ConflictStats";
+import { ConflictTable } from "./ConflictTable";
 
-export const ConflictDatesModules = () => {
+export const ConflictModules = () => {
   const {
     dateRange,
     setDateRange,
@@ -22,11 +22,11 @@ export const ConflictDatesModules = () => {
     filteredRows,
     stats,
     handleSyncSheet,
-  } = useConflictDatesData();
+  } = useConflictData();
 
   return (
     <div className="space-y-4">
-      <ConflictDatesHeader
+      <ConflictHeader
         dateRange={dateRange}
         setDateRange={setDateRange}
         query={query}
@@ -35,8 +35,9 @@ export const ConflictDatesModules = () => {
         isAutoRefreshPaused={isAutoRefreshPaused}
         onToggleAutoRefresh={toggleAutoRefresh}
       />
-      <ConflictDatesStats stats={stats} />
-      <ConflictDatesTable
+      <ConflictStats stats={stats} />
+      <Separator className="my-6" />
+      <ConflictTable
         rows={rows}
         query={query}
         dateRange={dateRange}
@@ -45,13 +46,13 @@ export const ConflictDatesModules = () => {
         selectedDics={selectedDics}
         onSelectedDicsChange={setSelectedDics}
       />
-      <ConflictDatesPreviewReports
+      {/* <ConflictPreviewReports
         rows={rows}
         selectedClusters={selectedClusters}
         dateRange={dateRange}
-      />
+      /> */}
     </div>
   );
 };
 
-export default ConflictDatesModules;
+export default ConflictModules;

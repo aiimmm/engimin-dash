@@ -48,7 +48,7 @@ export function DatePickerWithRange({ dateRange, setDateRange, className }) {
             <HugeiconsIcon
               icon={Calendar02Icon}
               data-icon="inline-start"
-              className="mr-0.5 size-4 "
+              className="mr-0.5 size-4"
             />
             {selected.from ? (
               selected.to ? (

@@ -57,42 +57,165 @@ export function isAppointmentTask(row) {
 }
 
 /**
- * Check if a task or its tracing schedule is rejected
+ * Extract task tracking status info for Allocation
+ * Handles 6 statuses:
+ * - "New"
+ * - "Arrived"
+ * - "Pending"
+ * - "Completed" (Done by Eng)
+ * - "Rejected"
+ * - "Rejected WO Guarantee"
  */
-export function isTaskRejected(row = {}) {
+export function getTaskTrackingStatus(row = {}) {
   const traceStatus = String(
     row.reservationtraces_status ||
       row.reservationtrace_status ||
       row.traces_status ||
       row.engineer_status ||
       "",
-  )
-    .trim()
-    .toLowerCase();
+  ).trim();
 
-  const mainStatus = String(row.status || row.wo_status || "")
-    .trim()
-    .toLowerCase();
+  const mainStatus = String(row.status || row.wo_status || "").trim();
 
-  if (traceStatus === "rejected" || mainStatus === "rejected") {
-    return true;
-  }
-
-  // Check inside tracingSchedule array if present
   const tracing = Array.isArray(row.tracingSchedule)
     ? row.tracingSchedule
     : Array.isArray(row.tracing_schedule)
       ? row.tracing_schedule
       : [];
 
-  const hasTracingRejected = tracing.some((item) => {
-    const st = String(item?.status || item?.reservationtraces_status || "")
-      .trim()
-      .toLowerCase();
-    return st === "rejected";
-  });
+  const tracingStatus =
+    tracing
+      .map((t) => String(t?.status || t?.reservationtraces_status || "").trim())
+      .find(Boolean) || "";
 
-  return hasTracingRejected;
+  const rejectDate =
+    row.rejected_wo_guarantee_date &&
+    row.rejected_wo_guarantee_date !== "—" &&
+    row.rejected_wo_guarantee_date !== "-"
+      ? row.rejected_wo_guarantee_date
+      : null;
+
+  // Check Rejected WO Guarantee first (most specific)
+  const isRejectedGuarantee =
+    Boolean(rejectDate) ||
+    /rejected\s+wo\s+guarantee/i.test(traceStatus) ||
+    /rejected\s+wo\s+guarantee/i.test(mainStatus) ||
+    tracing.some(
+      (t) =>
+        (Boolean(t?.rejected_wo_guarantee_date) &&
+          t?.rejected_wo_guarantee_date !== "—" &&
+          t?.rejected_wo_guarantee_date !== "-") ||
+        /rejected\s+wo\s+guarantee/i.test(String(t?.status || "")),
+    );
+
+  if (isRejectedGuarantee) {
+    return {
+      status: "Rejected WO Guarantee",
+      isRejected: true,
+      isRejectedGuarantee: true,
+      isCompleted: false,
+      isPending: false,
+      isArrived: false,
+      isNew: false,
+      tone: "red",
+    };
+  }
+
+  // Check Rejected (general)
+  const isRejectedGeneral =
+    /rejected/i.test(traceStatus) ||
+    /rejected/i.test(mainStatus) ||
+    tracing.some((t) => /rejected/i.test(String(t?.status || "")));
+
+  if (isRejectedGeneral) {
+    return {
+      status: "Rejected",
+      isRejected: true,
+      isRejectedGuarantee: false,
+      isCompleted: false,
+      isPending: false,
+      isArrived: false,
+      isNew: false,
+      tone: "red",
+    };
+  }
+
+  // Check Arrived
+  const isArrived =
+    /arrived/i.test(traceStatus) ||
+    /arrived/i.test(mainStatus) ||
+    tracing.some((t) => /arrived/i.test(String(t?.status || "")));
+
+  if (isArrived) {
+    return {
+      status: "Arrived",
+      isRejected: false,
+      isRejectedGuarantee: false,
+      isCompleted: false,
+      isPending: false,
+      isArrived: true,
+      isNew: false,
+      tone: "blue",
+    };
+  }
+
+  // Check Pending
+  const isPending =
+    /pending/i.test(traceStatus) ||
+    /pending/i.test(mainStatus) ||
+    tracing.some((t) => /pending/i.test(String(t?.status || "")));
+
+  if (isPending) {
+    return {
+      status: "Pending",
+      isRejected: false,
+      isRejectedGuarantee: false,
+      isCompleted: false,
+      isPending: true,
+      isArrived: false,
+      isNew: false,
+      tone: "amber",
+    };
+  }
+
+  // Check Completed (Done by Eng)
+  const isCompleted =
+    /completed/i.test(traceStatus) ||
+    /completed/i.test(mainStatus) ||
+    tracing.some((t) => /completed/i.test(String(t?.status || "")));
+
+  if (isCompleted) {
+    return {
+      status: "Completed",
+      isRejected: false,
+      isRejectedGuarantee: false,
+      isCompleted: true,
+      isPending: false,
+      isArrived: false,
+      isNew: false,
+      tone: "emerald",
+    };
+  }
+
+  // Default / New
+  return {
+    status: "New",
+    isRejected: false,
+    isRejectedGuarantee: false,
+    isCompleted: false,
+    isPending: false,
+    isArrived: false,
+    isNew: true,
+    tone: "neutral",
+  };
+}
+
+/**
+ * Check if a task or its tracing schedule is rejected (including Rejected WO Guarantee)
+ */
+export function isTaskRejected(row = {}) {
+  const tracking = getTaskTrackingStatus(row);
+  return tracking.isRejected;
 }
 
 /**
@@ -111,40 +234,8 @@ export function getInHouseStatus(roomStatusName) {
  * Check if a task is Done by Eng
  */
 export function isTaskDoneByEng(row = {}) {
-  if (isTaskRejected(row)) return false;
-
-  const tracing = Array.isArray(row.tracingSchedule)
-    ? row.tracingSchedule
-    : Array.isArray(row.tracing_schedule)
-      ? row.tracing_schedule
-      : [];
-
-  const rootStatus = String(row.status || "")
-    .trim()
-    .toLowerCase();
-  const rootWoStatus = String(row.wo_status || "")
-    .trim()
-    .toLowerCase();
-  const rootTraceStatus = String(row.reservationtraces_status || "")
-    .trim()
-    .toLowerCase();
-
-  // If the reservation trace or schedule is still "New", it is not yet done by engineer
-  if (rootTraceStatus === "new") {
-    return false;
-  }
-
-  // Done by Eng is true when the engineer/tracing schedule is completed or WO is completed
-  const hasTracingCompleted = tracing.some(
-    (t) =>
-      String(t?.status || "")
-        .trim()
-        .toLowerCase() === "completed",
-  );
-  const isTraceCompleted = rootTraceStatus === "completed" || hasTracingCompleted;
-  const isWoCompleted = rootWoStatus === "completed" || rootStatus === "completed";
-
-  return isTraceCompleted || isWoCompleted;
+  const tracking = getTaskTrackingStatus(row);
+  return tracking.isCompleted;
 }
 
 /**
@@ -194,7 +285,8 @@ export function formatAllocationRow(row) {
     row.is_guestAppointment === true;
 
   // Status checks
-  const isRejected = isTaskRejected(row);
+  const trackingStatus = getTaskTrackingStatus(row);
+  const isRejected = trackingStatus.isRejected;
   const isDoneByEng = isTaskDoneByEng(row);
   const isDoneByAdmin = isTaskDoneByAdmin(row);
 
@@ -205,10 +297,17 @@ export function formatAllocationRow(row) {
     parts.push("Guest Appointment");
   }
 
-  if (isRejected) {
+  // Include tracking status if not "New"
+  if (trackingStatus.status === "Rejected WO Guarantee") {
+    parts.push("Rejected WO Guarantee");
+  } else if (trackingStatus.status === "Rejected") {
     parts.push("Rejected");
-  } else if (isDoneByEng) {
+  } else if (trackingStatus.status === "Completed") {
     parts.push("Done by Eng");
+  } else if (trackingStatus.status === "Arrived") {
+    parts.push("Arrived");
+  } else if (trackingStatus.status === "Pending") {
+    parts.push("Pending");
   }
 
   if (isDoneByAdmin) {
@@ -226,7 +325,12 @@ export function formatAllocationRow(row) {
     genId,
     inHouseStatus,
     isGuestAppt,
+    trackingStatus,
+    taskStatus: trackingStatus.status,
     isRejected,
+    isRejectedGuarantee: trackingStatus.isRejectedGuarantee,
+    isArrived: trackingStatus.isArrived,
+    isPending: trackingStatus.isPending,
     isDoneByEng,
     isDoneByAdmin,
     rawRow: row,

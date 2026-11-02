@@ -2,6 +2,7 @@ import { Typography } from "@/components/elements/Typography";
 import { Button } from "@/components/ui/button";
 import { getWorkOrderTracingUrl, toTitleCase } from "@/lib/utils";
 import {
+  BreakContractNotice,
   CloseOutStatus,
   RoomStatus,
   WorkOrderStatus,
@@ -83,7 +84,7 @@ export const AppointmentColumns = helper.columns([
 
           <Typography
             as="p"
-            className="select-none whitespace-normal text-[10px] text-muted-foreground line-clamp-3"
+            className="select-none whitespace-normal text-[10px] text-muted-foreground line-clamp-4"
           >
             {note}
           </Typography>
@@ -114,6 +115,7 @@ export const AppointmentColumns = helper.columns([
     meta: { label: "Reservation" },
     sortingFn: "alphanumeric",
   }),
+
   helper.accessor("actionDate", {
     id: "Action Date",
     header: ({ column }) => {
@@ -172,9 +174,6 @@ export const AppointmentColumns = helper.columns([
     ),
     cell: ({ row }) => {
       const data = row.original;
-      const isBreak = Boolean(data.isBreakContract);
-
-      const breakDate = data.breakContractDate || data.breakcontract_date;
 
       return (
         <div className="min-w-44 space-y-1">
@@ -191,18 +190,7 @@ export const AppointmentColumns = helper.columns([
             {data.roomName || "—"}
           </Typography>
 
-          {isBreak && (
-            <div className="flex flex-wrap items-center gap-1 text-[10px]">
-              <span className="text-red-600 dark:text-red-400">Break Contract:</span>
-
-              <Typography
-                as="span"
-                className="text-[10px] font-medium text-red-600 dark:text-red-400"
-              >
-                {breakDate && breakDate !== true ? fmtDate(breakDate) : "Yes"}
-              </Typography>
-            </div>
-          )}
+          <BreakContractNotice data={data} />
         </div>
       );
     },

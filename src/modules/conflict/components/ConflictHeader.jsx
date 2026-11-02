@@ -1,10 +1,9 @@
 import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
 import { Typography } from "@/components/elements/Typography";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PauseCircleIcon, PlayCircleIcon, RefreshCwIcon } from "lucide-react";
 
-export const ConflictDatesHeader = ({
+export const ConflictHeader = ({
   dateRange,
   setDateRange,
   query,
@@ -16,22 +15,18 @@ export const ConflictDatesHeader = ({
   return (
     <div className="flex flex-col items-start gap-4">
       <div>
-        <Badge className="uppercase tracking-widest text-black dark:text-white mb-3 border border-black/5 bg-neutral-200 dark:border-white/5 dark:bg-neutral-800">
-          <span
-            className={`size-1.5 rounded-full mr-1 ${
-              isAutoRefreshPaused ? "bg-amber-500" : "bg-emerald-500"
-            }`}
-          />
-          {isAutoRefreshPaused ? "Auto-Refresh Dijeda" : "Live Operation"}
-        </Badge>
+        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
+          <span className="size-1.5 rounded-full bg-green-500" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Live Operation
+          </p>
+        </div>
         <Typography as="h2" className="font-extrabold">
           Conflict Dates Overview
         </Typography>
         <Typography as="p" className="text-sm text-muted-foreground mt-1">
-          Menampilkan work orders with conflict dates (Next CI from date to date).
-          {isAutoRefreshPaused
-            ? " Auto-refresh halaman dijeda (sinkronisasi sheet latar belakang tetap berjalan)."
-            : " Diperbarui otomatis setiap 3 menit."}
+          Ringkasan work orders yang dijadwalkan kemarin atau dalam rentang tanggal action date yang
+          dipilih.
         </Typography>
       </div>
       <div className="flex flex-wrap gap-2">

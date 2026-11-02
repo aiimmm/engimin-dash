@@ -1,10 +1,11 @@
 "use client";
 
+import { Separator } from "@/components/ui/separator";
+import { useAppointmentData } from "../hooks/useAppointmentData";
 import { AppointmentHeader } from "./AppointmentHeader";
 import { AppointmentPreviewReports } from "./AppointmentPreviewReports";
 import { AppointmentStats } from "./AppointmentStats";
 import { AppointmentTable } from "./AppointmentTable";
-import { useAppointmentData } from "../hooks/useAppointmentData";
 
 export const AppointmentModules = () => {
   const {
@@ -30,6 +31,7 @@ export const AppointmentModules = () => {
         isSyncing={isSyncing}
       />
       <AppointmentStats rows={clusterFilteredRows} stats={stats} />
+      <Separator className="my-6" />
       <AppointmentTable
         rows={rows}
         query={query}
@@ -37,6 +39,7 @@ export const AppointmentModules = () => {
         selectedClusters={selectedClusters}
         onSelectedClustersChange={setSelectedClusters}
       />
+      <Separator className="my-6" />
       <AppointmentPreviewReports
         rows={rows}
         selectedClusters={selectedClusters}
