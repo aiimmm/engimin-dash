@@ -468,7 +468,7 @@ export function generateNonInHouseKeyPickupReport(items = [], options = {}) {
         ? `[${fromFormatted}]`
         : "";
 
-  const titleHeader = `CLUSTER ${clusterStr}\nENGINEERING SCHEDULES ${dateRangeStr}`.trim();
+  const titleHeader = `*CLUSTER ${clusterStr}*\n*ENGINEERING SCHEDULES ${dateRangeStr}*`.trim();
 
   const grouped = groupAllocationByEngineer(items);
   const resultBlocks = [];
@@ -487,7 +487,7 @@ export function generateNonInHouseKeyPickupReport(items = [], options = {}) {
     if (uniqueLocations.size > 0) {
       const count = uniqueLocations.size;
       const unitsList = Array.from(uniqueLocations).join("\n");
-      resultBlocks.push(`${group.engineerName} | ${count} Rows\n${unitsList}`);
+      resultBlocks.push(`*${group.engineerName} | ${count} Rows*\n${unitsList}`);
     }
   });
 

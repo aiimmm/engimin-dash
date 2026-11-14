@@ -23,7 +23,11 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
   const dateLabel = formatCompactDate(date || today());
   const stats = calculateDicStats(rows);
 
-  const lines = [clusterTitleHeader, `WO Created Today (${dateLabel})`, `- Total : ${stats.Total}`];
+  const lines = [
+    `*${clusterTitleHeader}*`,
+    `*WO Created Today (${dateLabel})*`,
+    `- Total : ${stats.Total}`,
+  ];
 
   // Section 2: Department In Charge (exclude 0-value items)
   const dicItems = [
@@ -39,7 +43,7 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
 
   const activeDicItems = dicItems.filter((item) => item.count > 0);
   if (activeDicItems.length > 0) {
-    lines.push("Department In Charge");
+    lines.push("*Department In Charge*");
     activeDicItems.forEach((item) => {
       lines.push(`- ${item.label} : ${item.count}`);
     });
@@ -54,7 +58,7 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
 
   const activeRoomItems = roomItems.filter((item) => item.count > 0);
   if (activeRoomItems.length > 0) {
-    lines.push("Room Status");
+    lines.push("*Room Status*");
     activeRoomItems.forEach((item) => {
       lines.push(`- ${item.label} : ${item.count}`);
     });

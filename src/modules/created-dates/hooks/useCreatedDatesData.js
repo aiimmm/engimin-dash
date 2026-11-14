@@ -2,6 +2,7 @@
 
 import { toast } from "@/components/ui/toast";
 import { apiClient } from "@/lib/api/client";
+import { QUERY_STALE_MS, useAutoRefreshInterval } from "@/lib/config/refresh";
 import { calculateDicStats } from "@/modules/created-dates/lib";
 import { today } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ export function useCreatedDatesData() {
     to: todayDate,
   }));
   const knownIds = useRef(new Set());
+  const refetchInterval = useAutoRefreshInterval();
 
   const query = useQuery({
     queryKey: ["workorders-created-today", dateRange.from, dateRange.to],
@@ -33,7 +35,8 @@ export function useCreatedDatesData() {
           },
         })
       ).data,
-    refetchInterval: 180_000,
+    staleTime: QUERY_STALE_MS,
+    refetchInterval,
     enabled: Boolean(dateRange.from),
   });
 

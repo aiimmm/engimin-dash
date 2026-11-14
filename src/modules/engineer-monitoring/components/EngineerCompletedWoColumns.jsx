@@ -109,12 +109,24 @@ export const EngineerCompletedWoColumns = helper.columns([
         Completed User
       </Button>
     ),
-    cell: ({ getValue }) => {
+    cell: ({ getValue, row }) => {
       const user = getValue();
+      const completedDate =
+        row.original.completedDate ||
+        row.original.completed_date ||
+        row.original.updatedDate ||
+        row.original.updated_date;
       if (!user || user === "—" || user === "-") {
         return <span className="text-xs text-muted-foreground">—</span>;
       }
-      return <span className="text-xs font-medium">{toTitleCase(user)}</span>;
+      return (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-medium">{toTitleCase(user)}</span>
+          {completedDate && completedDate !== "—" && (
+            <span className="text-[10px] text-muted-foreground font-mono">{completedDate}</span>
+          )}
+        </div>
+      );
     },
     meta: { label: "Completed User" },
     sortingFn: "text",
@@ -138,11 +150,9 @@ export const EngineerCompletedWoColumns = helper.columns([
         return <span className="text-xs text-muted-foreground">—</span>;
       }
       return (
-        // <div className="flex justify-center">
         <Badge variant="outline" className="text-xs capitalize font-medium">
           {toTitleCase(charge)}
         </Badge>
-        // </div>
       );
     },
     meta: { label: "Charge To" },

@@ -1,7 +1,7 @@
 "use client";
 
-import { apiClient } from "@/lib/api/client";
 import { setPendingToast } from "@/hooks/usePendingToast";
+import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { LogOutIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,7 +43,7 @@ export const LogoutButton = () => {
     <>
       <Button
         className={cn(
-          "group/menu cursor-pointer w-full flex items-center justify-start gap-2 text-sm transition-all duration-200 hover:gap-3",
+          "group/menu cursor-pointer w-full flex items-center justify-start gap-2 text-sm transition-all duration-200 hover:gap-3 px-2.25",
           "bg-transparent text-red-600 dark:text-red-500 hover:bg-red-500/10",
         )}
         onClick={() => setLogoutOpen(true)}

@@ -16,7 +16,6 @@ const INDONESIAN_DAYS = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", 
 
 export const REQUIRED_WO_SHEET_HEADERS = [
   "No.",
-  "Assign/Unassign",
   "Category",
   "WO",
   "Note",
@@ -257,19 +256,18 @@ export function formatWorkOrderRowForSheet(row, category = "Appointment", indexN
 
   return [
     indexNumber, // 1. No.
-    isAssigned, // 2. Assign/Unassign (Checkbox: true/false)
-    category, // 3. Category (Dropdown: Appointment, CI Conflict, Aging)
-    row.woNumber || row.wo_no || row.id || "—", // 4. WO
-    note, // 5. Note
-    bookingId, // 6. BookingID
-    checkInDate, // 7. Check-In Date ("DD-MM-YYYY")
-    checkOutDate, // 8. Check-Out Date ("DD-MM-YYYY")
-    actionDate, // 9. Action Date ("DD-MM-YYYY — HH:mm")
-    genId, // 10. GenID
-    unit, // 11. Unit
-    engineer, // 12. Engineer
-    dic, // 13. DIC
-    cluster, // 14. Cluster
+    category, // 2. Category (Dropdown: Appointment, CI Conflict, Aging)
+    row.woNumber || row.wo_no || row.id || "—", // 3. WO
+    note, // 4. Note
+    bookingId, // 5. BookingID
+    checkInDate, // 6. Check-In Date ("DD-MM-YYYY")
+    checkOutDate, // 7. Check-Out Date ("DD-MM-YYYY")
+    actionDate, // 8. Action Date ("DD-MM-YYYY — HH:mm")
+    genId, // 9. GenID
+    unit, // 10. Unit
+    engineer, // 11. Engineer
+    dic, // 12. DIC
+    cluster, // 13. Cluster
   ];
 }
 
@@ -301,15 +299,15 @@ export function formatRequiredWoDataForSheet(rows = [], options = {}) {
     appointmentRows !== undefined ? appointmentRows : Array.isArray(rows) ? rows : [];
 
   const finalAppointmentRows = rawAppointmentRows.filter(
-    (row) => !isExcludedAppointmentDepartment(row.department),
+    (row) => !isExcludedAppointmentDepartment(row.department) && !isBreakContractRow(row),
   );
 
   const finalConflictRows = (conflictRows !== undefined ? conflictRows : []).filter(
-    (row) => !isExcludedConflictArticle(row.article),
+    (row) => !isExcludedConflictArticle(row.article) && !isBreakContractRow(row),
   );
 
   const finalAgingRows = (agingRows !== undefined ? agingRows : []).filter(
-    (row) => !isExcludedConflictArticle(row.article),
+    (row) => !isExcludedConflictArticle(row.article) && !isBreakContractRow(row),
   );
 
   let currentNo = 1;
@@ -361,7 +359,7 @@ export function formatRequiredWoDataForSheet(rows = [], options = {}) {
 
   return {
     spreadsheetName:
-      process.env.REQUIRED_WO_SHEET_NAME || process.env.APPOINTMENT_SHEET_NAME || "Required WO",
+      process.env.REQUIRED_WO_SHEET_NAME || process.env.APPOINTMENT_SHEET_NAME || undefined,
     sheetName,
     date,
     headers: REQUIRED_WO_SHEET_HEADERS,

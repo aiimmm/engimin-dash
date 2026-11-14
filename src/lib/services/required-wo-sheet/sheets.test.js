@@ -105,10 +105,10 @@ describe("required-wo-sheet service", () => {
       agingRows: mockAgingRows,
     });
 
-    expect(result.spreadsheetName).toBe(process.env.REQUIRED_WO_SHEET_NAME || "Required WO");
+    expect(result.spreadsheetName).toBe(process.env.REQUIRED_WO_SHEET_NAME || undefined);
     expect(result.sheetName).toBe("Rabu, 23-09-2026");
     expect(result.headers).toEqual(REQUIRED_WO_SHEET_HEADERS);
-    expect(result.headers.length).toBe(14);
+    expect(result.headers.length).toBe(13);
     expect(result.totalRows).toBe(3);
     expect(result.appointmentCount).toBe(1);
     expect(result.conflictCount).toBe(1);
@@ -116,62 +116,57 @@ describe("required-wo-sheet service", () => {
 
     // Row 1: Appointment
     expect(result.rows[0][0]).toBe(1); // No.
-    expect(result.rows[0][1]).toBe(true); // Assign/Unassign (Checkbox)
-    expect(result.rows[0][2]).toBe("Appointment"); // Category
-    expect(result.rows[0][3]).toBe("WO-001"); // WO
-    expect(result.rows[0][4]).toBe("Appointment note"); // Note
-    expect(result.rows[0][5]).toBe("279CE48A4D1"); // BookingID
-    expect(result.rows[0][6]).toBe("23-09-2026"); // Check-In Date
-    expect(result.rows[0][8]).toBe("23-09-2026 — 10:30"); // Action Date
-    expect(result.rows[0][9]).toBe("B5D13111D1A"); // GenID
-    expect(result.rows[0][10]).toBe("Tokyo Riverside — Tower Dotonbori-Floor 16-Unit 3"); // Unit
-    expect(result.rows[0][11]).toBe("A.Widodo"); // Engineer
-    expect(result.rows[0][12]).toBe("Engineering"); // DIC
-    expect(result.rows[0][13]).toBe("Pik 2"); // Cluster
+    expect(result.rows[0][1]).toBe("Appointment"); // Category
+    expect(result.rows[0][2]).toBe("WO-001"); // WO
+    expect(result.rows[0][3]).toBe("Appointment note"); // Note
+    expect(result.rows[0][4]).toBe("279CE48A4D1"); // BookingID
+    expect(result.rows[0][5]).toBe("23-09-2026"); // Check-In Date
+    expect(result.rows[0][7]).toBe("23-09-2026 — 10:30"); // Action Date
+    expect(result.rows[0][8]).toBe("B5D13111D1A"); // GenID
+    expect(result.rows[0][9]).toBe("Tokyo Riverside — Tower Dotonbori-Floor 16-Unit 3"); // Unit
+    expect(result.rows[0][10]).toBe("A.Widodo"); // Engineer
+    expect(result.rows[0][11]).toBe("Engineering"); // DIC
+    expect(result.rows[0][12]).toBe("Pik 2"); // Cluster
 
     // Row 2: CI Conflict below Appointment
     expect(result.rows[1][0]).toBe(2); // No.
-    expect(result.rows[1][1]).toBe(true); // Assign/Unassign (Checkbox)
-    expect(result.rows[1][2]).toBe("CI Conflict"); // Category
-    expect(result.rows[1][3]).toBe("WO-002"); // WO
-    expect(result.rows[1][4]).toBe("Conflict note"); // Note
-    expect(result.rows[1][5]).toBe("BC-BOOK-999"); // BookingID
-    expect(result.rows[1][6]).toBe("23-09-2026"); // Check-In Date
-    expect(result.rows[1][8]).toBe("23-09-2026 — 14:00"); // Action Date
-    expect(result.rows[1][9]).toBe("BC8A12"); // GenID
-    expect(result.rows[1][10]).toBe("Bassura City — Tower Alamanda-Floor 8-Unit 12"); // Unit
-    expect(result.rows[1][11]).toBe("B.Santoso"); // Engineer
-    expect(result.rows[1][12]).toBe("Engineering"); // DIC
-    expect(result.rows[1][13]).toBe("Bassura"); // Cluster
+    expect(result.rows[1][1]).toBe("CI Conflict"); // Category
+    expect(result.rows[1][2]).toBe("WO-002"); // WO
+    expect(result.rows[1][3]).toBe("Conflict note"); // Note
+    expect(result.rows[1][4]).toBe("BC-BOOK-999"); // BookingID
+    expect(result.rows[1][5]).toBe("23-09-2026"); // Check-In Date
+    expect(result.rows[1][7]).toBe("23-09-2026 — 14:00"); // Action Date
+    expect(result.rows[1][8]).toBe("BC8A12"); // GenID
+    expect(result.rows[1][9]).toBe("Bassura City — Tower Alamanda-Floor 8-Unit 12"); // Unit
+    expect(result.rows[1][10]).toBe("B.Santoso"); // Engineer
+    expect(result.rows[1][11]).toBe("Engineering"); // DIC
+    expect(result.rows[1][12]).toBe("Bassura"); // Cluster
 
     // Row 3: Aging below CI Conflict
     expect(result.rows[2][0]).toBe(3); // No.
-    expect(result.rows[2][1]).toBe(true); // Assign/Unassign (Checkbox)
-    expect(result.rows[2][2]).toBe("Aging"); // Category
-    expect(result.rows[2][3]).toBe("WO-003"); // WO
-    expect(result.rows[2][4]).toBe("Aging note"); // Note
-    expect(result.rows[2][11]).toBe("C.Darmawan"); // Engineer
-    expect(result.rows[2][13]).toBe("Pramuka"); // Cluster
+    expect(result.rows[2][1]).toBe("Aging"); // Category
+    expect(result.rows[2][2]).toBe("WO-003"); // WO
+    expect(result.rows[2][3]).toBe("Aging note"); // Note
+    expect(result.rows[2][10]).toBe("C.Darmawan"); // Engineer
+    expect(result.rows[2][12]).toBe("Pramuka"); // Cluster
   });
 
-  it("formatWorkOrderRowForSheet sets Assign/Unassign to false when engineer is unassigned or empty", () => {
+  it("formatWorkOrderRowForSheet formats engineer correctly when unassigned or empty", () => {
     const unassignedRow = {
       woNumber: "WO-999",
       engineer: "Unassigned",
     };
     const formatted = formatWorkOrderRowForSheet(unassignedRow, "Appointment", 1);
-    expect(formatted[1]).toBe(false);
-    expect(formatted[2]).toBe("Appointment");
-    expect(formatted[11]).toBe("Unassigned");
+    expect(formatted[1]).toBe("Appointment");
+    expect(formatted[10]).toBe("Unassigned");
 
     const emptyEngRow = {
       woNumber: "WO-999",
       engineer: "",
     };
     const formattedEmpty = formatWorkOrderRowForSheet(emptyEngRow, "Appointment", 2);
-    expect(formattedEmpty[1]).toBe(false);
-    expect(formattedEmpty[2]).toBe("Appointment");
-    expect(formattedEmpty[11]).toBe("Unassigned");
+    expect(formattedEmpty[1]).toBe("Appointment");
+    expect(formattedEmpty[10]).toBe("Unassigned");
   });
 
   it("formatRequiredWoDataForSheet excludes non-applicable articles from spreadsheet payload", () => {
@@ -222,7 +217,7 @@ describe("required-wo-sheet service", () => {
 
       const res = await syncRequiredWorkorderToGoogleSheet({ rows: [], date: "2026-09-23" });
       expect(res.configured).toBe(false);
-      expect(res.data.spreadsheetName).toBe(process.env.REQUIRED_WO_SHEET_NAME || "Required WO");
+      expect(res.data.spreadsheetName).toBe(process.env.REQUIRED_WO_SHEET_NAME || undefined);
       expect(res.data.sheetName).toBe("Rabu, 23-09-2026");
     });
 

@@ -2,6 +2,7 @@
 
 import { toast } from "@/components/ui/toast";
 import { apiClient } from "@/lib/api/client";
+import { QUERY_STALE_MS, useAutoRefreshInterval } from "@/lib/config/refresh";
 import { today, yesterday } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,6 +21,7 @@ export function useActionDatesData() {
 
   const [selectedClusters, setSelectedClusters] = useState([]);
   const knownIds = useRef(new Set());
+  const refetchInterval = useAutoRefreshInterval();
 
   const query = useQuery({
     queryKey: ["workorders-action-dates", dateRange.from, dateRange.to],
@@ -35,7 +37,8 @@ export function useActionDatesData() {
           },
         })
       ).data,
-    refetchInterval: 180_000,
+    staleTime: QUERY_STALE_MS,
+    refetchInterval,
     enabled: Boolean(dateRange.from),
   });
 

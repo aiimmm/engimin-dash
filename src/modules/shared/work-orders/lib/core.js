@@ -269,25 +269,98 @@ const PENDING_CHURN_REMARK_FRAGMENT =
   "Mohon dibantu untuk pengecekan WO outstanding unit berikut karena unit akan di serah terima kan";
 
 /**
- * Cek apakah array WO history mengandung WO "Pending Churn" yang masih aktif (status New).
- * Jika ada, berarti unit sedang dalam proses break contract meskipun tanggalnya belum lewat.
+ * Evaluasi status WO Pending Churn / Break Contract pada history room.
  *
- * Indikator:
- *   - remark mengandung teks Pending Churn
- *   - status === "New"
+ * Indikator WO Pending Churn:
+ *   - create_source mengandung "Pending Churn" (case-insensitive)
+ *   - remark mengandung fragment teks "Dear Team Eng" / "Mohon dibantu untuk pengecekan WO outstanding unit berikut karena unit akan di serah terima kan"
+ *   - workorder_articles_id === 736 (atau article "break contract" / "pending churn")
+ *
+ * Mengembalikan:
+ *   - hasActivePendingChurn: boolean (ada WO pending churn dengan status New / Pending / Active)
+ *   - hasCancelledPendingChurn: boolean (ada WO pending churn dengan status Cancelled atau cancelled_user)
+ *   - latestPendingChurn: object | null
+ *
+ * @param {object[]} historyItems - array item dari getListWOHistoryPerRoomV2
+ * @returns {{ hasActivePendingChurn: boolean, hasCancelledPendingChurn: boolean, latestPendingChurn: object|null }}
+ */
+export function evaluatePendingChurnHistory(historyItems = []) {
+  if (!Array.isArray(historyItems) || !historyItems.length) {
+    return {
+      hasActivePendingChurn: false,
+      hasCancelledPendingChurn: false,
+      latestPendingChurn: null,
+    };
+  }
+
+  const churnItems = historyItems.filter((item) => {
+    const remark = String(item.remark || "").toLowerCase();
+    const source = String(item.create_source || "").toLowerCase();
+    const article = String(item.wo_articles || item.article || "").toLowerCase();
+    const articleId = Number(item.workorder_articles_id || item.articles_id || 0);
+
+    const isRemarkMatch =
+      remark.includes(
+        "mohon dibantu untuk pengecekan wo outstanding unit berikut karena unit akan di serah terima kan",
+      ) ||
+      (remark.includes("dear team eng") && remark.includes("serah terima"));
+    const isSourceMatch = source.includes("pending churn");
+    const isArticleMatch =
+      articleId === 736 || article.includes("break contract") || article.includes("pending churn");
+
+    return isRemarkMatch || isSourceMatch || isArticleMatch;
+  });
+
+  if (churnItems.length === 0) {
+    return {
+      hasActivePendingChurn: false,
+      hasCancelledPendingChurn: false,
+      latestPendingChurn: null,
+    };
+  }
+
+  // Sort latest first (by id descending or created_date)
+  const sorted = [...churnItems].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+  const latest = sorted[0];
+
+  const hasActivePendingChurn = churnItems.some((item) => {
+    const status = String(item.status || item.rt_status || "")
+      .trim()
+      .toLowerCase();
+    const isCancelled =
+      status === "cancelled" || Boolean(item.cancelled_user) || Boolean(item.cancelled_date);
+    const isComplete = status === "completed" || item.is_completed === 1;
+    return (
+      !isCancelled &&
+      !isComplete &&
+      (status === "new" || status === "pending" || status === "active" || status === "on progress")
+    );
+  });
+
+  const hasCancelledPendingChurn = churnItems.some((item) => {
+    const status = String(item.status || item.rt_status || "")
+      .trim()
+      .toLowerCase();
+    return status === "cancelled" || Boolean(item.cancelled_user) || Boolean(item.cancelled_date);
+  });
+
+  return {
+    hasActivePendingChurn,
+    hasCancelledPendingChurn: hasCancelledPendingChurn && !hasActivePendingChurn,
+    latestPendingChurn: latest,
+  };
+}
+
+/**
+ * Cek apakah array WO history mengandung WO "Pending Churn" yang masih aktif (status New/Pending).
+ * Jika ada, berarti unit sedang dalam proses break contract meskipun tanggalnya belum lewat.
  *
  * @param {object[]} historyItems - array item dari getListWOHistoryPerRoomV2
  * @returns {boolean}
  */
 export function checkHasPendingChurnWo(historyItems) {
-  if (!Array.isArray(historyItems) || !historyItems.length) return false;
-  return historyItems.some((item) => {
-    const remark = String(item.remark || "");
-    const status = String(item.status || item.rt_status || "").toLowerCase();
-    return (
-      remark.includes(PENDING_CHURN_REMARK_FRAGMENT) && (status === "new" || status === "pending")
-    );
-  });
+  const result = evaluatePendingChurnHistory(historyItems);
+  return result.hasActivePendingChurn;
 }
 
 // ─── Break Contract Check ─────────────────────────────────────────────────────
@@ -307,10 +380,16 @@ export function checkHasPendingChurnWo(historyItems) {
  *   2. Room memiliki WO history Pending Churn dengan status New/Pending
  *      → meskipun breakcontract_date masih di masa depan
  *
- * @param {string|null} breakDateValue       - nilai breakcontract_date dari API
- * @param {string|null} endDateValue         - nilai endcontract_date dari API
- * @param {Date}        baseDate             - referensi "hari ini" (default: new Date())
+ * Pengecualian FALSE (Break contract dibatalkan):
+ *   - Jika WO Pending Churn ("Dear Team Eng...") sudah di-cancel
+ *   - DAN unit property_status === "Active" & hotel_status === "active"
+ *   - DAN tidak ada WO pending churn yang aktif
+ *
+ * @param {string|null} breakDateValue         - nilai breakcontract_date dari API
+ * @param {string|null} endDateValue           - nilai endcontract_date dari API
+ * @param {Date}        baseDate               - referensi "hari ini" (default: new Date())
  * @param {boolean}     hasPendingChurnHistory - apakah room punya WO Pending Churn aktif
+ * @param {object}      context                - { propertyStatus, hotelStatus, isPendingChurnCancelled }
  */
 /** Parse berbagai format date ke Date object (midnight) */
 export function parseToMidnight(raw) {
@@ -344,12 +423,43 @@ export function checkIsBreakContract(
   endDateValue = null,
   baseDate = new Date(),
   hasPendingChurnHistory = false,
+  context = {},
 ) {
   // Support overloaded signature: checkIsBreakContract(breakDateValue, baseDate)
   if (endDateValue instanceof Date) {
     baseDate = endDateValue;
     endDateValue = null;
   }
+  // Support if 4th parameter is an object: checkIsBreakContract(breakDate, endDate, baseDate, context)
+  if (hasPendingChurnHistory && typeof hasPendingChurnHistory === "object") {
+    context = hasPendingChurnHistory;
+    hasPendingChurnHistory = Boolean(
+      context.hasPendingChurnHistory ?? context.hasActivePendingChurn,
+    );
+  }
+
+  const propStatus = String(
+    context.property_status || context.propertyStatus || context.propertyStatuses || "",
+  )
+    .trim()
+    .toLowerCase();
+  const hotelStatus = String(
+    context.hotel_status || context.hotelStatus || context.hotelStatuses || "",
+  )
+    .trim()
+    .toLowerCase();
+  const isUnitExplicitlyActive = propStatus === "active" && hotelStatus === "active";
+
+  const isPendingChurnCancelled = Boolean(
+    context.isPendingChurnCancelled ?? context.hasCancelledPendingChurn,
+  );
+
+  // Jika WO Pending Churn ("Dear Team Eng") sudah dicancel:
+  // Unit TIDAK termasuk break contract (proses break contract dibatalkan)
+  if (isPendingChurnCancelled && !hasPendingChurnHistory) {
+    return false;
+  }
+
   if (
     !breakDateValue ||
     breakDateValue === "—" ||
@@ -362,6 +472,24 @@ export function checkIsBreakContract(
 
   const breakDate = parseToMidnight(str);
   if (!breakDate) return false;
+
+  // Jika bukan unit inactive, tidak ada pending churn aktif,
+  // dan tanggal breakcontract_date sudah lewat di masa lalu sementara endcontract_date masih di masa depan:
+  // Ini adalah tanggal break contract lama yang dibatalkan/sudah di-cancel
+  const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
+  if (!isInactive && !hasPendingChurnHistory && endDateValue) {
+    const endDate = parseToMidnight(endDateValue);
+    const now = baseDate instanceof Date ? baseDate : new Date(baseDate);
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (
+      breakDate &&
+      endDate &&
+      breakDate.getTime() < todayMidnight.getTime() &&
+      endDate.getTime() > todayMidnight.getTime()
+    ) {
+      return false;
+    }
+  }
 
   // Kondisi 3: jika breakcontract_date == endcontract_date → bukan break, itu CO normal
   if (endDateValue) {
@@ -388,6 +516,24 @@ export function checkIsBreakContract(
  */
 export function getBreakContractNotice(data, baseDate = new Date()) {
   if (!data) return null;
+
+  const propStatus = String(data.property_status || data.propertyStatus || "")
+    .trim()
+    .toLowerCase();
+  const hotelStatus = String(data.hotel_status || data.hotelStatus || "")
+    .trim()
+    .toLowerCase();
+  const isUnitExplicitlyActive = propStatus === "active" && hotelStatus === "active";
+
+  // Jika WO Pending Churn ("Dear Team Eng") sudah dicancel, maka BUKAN break contract
+  if (data.isPendingChurnCancelled && !data.hasPendingChurnHistory) {
+    return null;
+  }
+
+  // Jika sudah dievaluasi isBreakContract = false (dan tidak ada pending churn aktif)
+  if (data.isBreakContract === false && !data.hasPendingChurnHistory) {
+    return null;
+  }
 
   const rawBreakDate = data.breakContractDate || data.breakcontract_date;
   const rawEndDate = data.endContractDate || data.endcontract_date;
@@ -419,6 +565,17 @@ export function getBreakContractNotice(data, baseDate = new Date()) {
           label: "Akan break contract pada:",
           date: fmtDate(rawBreakDate),
         };
+      }
+
+      // Jika bukan unit inactive, tidak ada pending churn aktif,
+      // dan break contract date di masa lalu (diffDays <= 0) sementara end contract date masih di masa depan:
+      // Ini adalah bekas tanggal break contract lama yang dibatalkan/di-cancel!
+      const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
+      if (diffDays <= 0 && !isInactive && !data.hasPendingChurnHistory && rawEndDate) {
+        const targetEndDate = parseToMidnight(rawEndDate);
+        if (targetEndDate && targetEndDate.getTime() > todayMidnight.getTime()) {
+          return null;
+        }
       }
 
       // Sudah masuk tanggal break contract atau lewat (diffDays <= 0)
@@ -587,10 +744,40 @@ export function normalizeWorkOrder(item, index = 0) {
         0,
       ),
     ),
+    propertyStatus: first(
+      item.property_status,
+      item.propertyStatus,
+      item.property_statuses,
+      "Active",
+    ),
+    property_status: first(
+      item.property_status,
+      item.propertyStatus,
+      item.property_statuses,
+      "Active",
+    ),
+    hotelStatus: first(item.hotel_status, item.hotelStatus, item.hotel_statuses, "active"),
+    hotel_status: first(item.hotel_status, item.hotelStatus, item.hotel_statuses, "active"),
+    isPendingChurnCancelled: Boolean(item.isPendingChurnCancelled),
     endContractDate: rawEndContractDate,
     breakContractDate: rawBreakContractDate,
-    hasPendingChurnHistory: false, // akan di-enrich di server route jika ada breakcontract_date
-    isBreakContract: checkIsBreakContract(rawBreakContractDate, rawEndContractDate),
+    hasPendingChurnHistory: Boolean(item.hasPendingChurnHistory), // akan di-enrich di server route jika ada breakcontract_date
+    isBreakContract: checkIsBreakContract(
+      rawBreakContractDate,
+      rawEndContractDate,
+      new Date(),
+      Boolean(item.hasPendingChurnHistory),
+      {
+        propertyStatus: first(
+          item.property_status,
+          item.propertyStatus,
+          item.property_statuses,
+          "Active",
+        ),
+        hotelStatus: first(item.hotel_status, item.hotelStatus, item.hotel_statuses, "active"),
+        isPendingChurnCancelled: Boolean(item.isPendingChurnCancelled),
+      },
+    ),
   };
 }
 

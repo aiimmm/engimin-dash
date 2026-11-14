@@ -77,7 +77,7 @@ export function generateAppointmentReport(rows = [], options = {}) {
   sortedTimes.forEach((timeKey) => {
     const itemRows = groups.get(timeKey);
     const seenItems = new Set();
-    const blockLines = [`JAM ${timeKey}`];
+    const blockLines = [`*JAM ${timeKey}*`];
     let count = 0;
 
     itemRows.forEach((row) => {
@@ -100,7 +100,7 @@ export function generateAppointmentReport(rows = [], options = {}) {
   });
 
   const headerLines = [
-    `REPORT APPOINTMENT ${clusterTitle} (${dateLabel})`,
+    `*REPORT APPOINTMENT ${clusterTitle} (${dateLabel})*`,
     // `TOTAL APPOINTMENT : ${totalAppointments}`,
   ];
 

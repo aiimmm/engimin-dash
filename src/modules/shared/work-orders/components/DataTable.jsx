@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import {
   checkIsInHouse,
   getBreakContractNotice,
@@ -58,6 +59,7 @@ import { flexRender, useTable } from "@tanstack/react-table";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, FileX2Icon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useUserType } from "@/lib/permissions/UserTypeProvider";
 import { WorkOrderTableFeatures } from "./DataTableFeatures";
 import { ExtendDialog } from "./ExtendDialog";
 import { MoveDialog } from "./MoveDialog";
@@ -343,6 +345,7 @@ export function DataTable({
   onSelectedClustersChange,
   selectedDics: externalDics,
   onSelectedDicsChange,
+  classNameInputGroup,
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [internalClusters, setInternalClusters] = useState([]);
@@ -376,7 +379,13 @@ export function DataTable({
   const [clusterSearch, setClusterSearch] = useState("");
 
   const pathname = usePathname();
-  const isActionDatesPage = pathname === "/dashboard/action-dates";
+  const { isFeatureAllowed } = useUserType();
+
+  const isActionDates =
+    pathname === "/dashboard/action-dates" || pathname?.startsWith("/dashboard/action-dates");
+  const isActionDatesPage = isActionDates;
+  const canExtend = isActionDates ? isFeatureAllowed("actionDatesExtend") : true;
+  const canMove = isActionDates ? isFeatureAllowed("actionDatesMove") : true;
 
   const clusters = useMemo(() => {
     const list = new Set();
@@ -636,7 +645,7 @@ export function DataTable({
   return (
     <div className="space-y-4">
       {/* ── Search + Columns ── */}
-      <div className="flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", classNameInputGroup)}>
         <InputGroup className="w-full">
           <InputGroupAddon>
             <HugeiconsIcon icon={Search01Icon} className="size-4 text-muted-foreground" />
@@ -969,20 +978,22 @@ export function DataTable({
           )}
 
           {/* Baris 7: Extend, Move */}
-          {selectedRows.length > 0 && (
+          {selectedRows.length > 0 && (canExtend || (showMoveButton && canMove)) && (
             <div className="flex w-full items-center gap-2">
-              <Button
-                variant="secondary"
-                className="flex-1 gap-1.5 text-xs"
-                onClick={() => setExtendOpen(true)}
-              >
-                <HugeiconsIcon icon={ClockPlusIcon} className="size-3.5" />
-                Extend
-                <Badge variant="default" className="h-4 px-1.5 text-[10px] font-semibold">
-                  {selectedRows.length}
-                </Badge>
-              </Button>
-              {showMoveButton && (
+              {canExtend && (
+                <Button
+                  variant="secondary"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => setExtendOpen(true)}
+                >
+                  <HugeiconsIcon icon={ClockPlusIcon} className="size-3.5" />
+                  Extend
+                  <Badge variant="default" className="h-4 px-1.5 text-[10px] font-semibold">
+                    {selectedRows.length}
+                  </Badge>
+                </Button>
+              )}
+              {showMoveButton && canMove && (
                 <Button
                   variant="secondary"
                   className="flex-1 gap-1.5 text-xs"

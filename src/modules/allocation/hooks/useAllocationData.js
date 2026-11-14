@@ -2,6 +2,7 @@
 
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api/client";
+import { QUERY_STALE_MS, useAutoRefreshInterval } from "@/lib/config/refresh";
 import { tomorrow } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -12,6 +13,7 @@ export function useAllocationData() {
   const tomorrowDate = useMemo(() => tomorrow(), []);
   const [selectedClusters, setSelectedClusters] = useState([]);
   const knownIds = useRef(new Set());
+  const refetchInterval = useAutoRefreshInterval();
 
   const query = useQuery({
     queryKey: ["workorders-allocation", tomorrowDate],
@@ -24,7 +26,8 @@ export function useAllocationData() {
           },
         })
       ).data,
-    refetchInterval: 180_000,
+    staleTime: QUERY_STALE_MS,
+    refetchInterval,
   });
 
   useEffect(() => {

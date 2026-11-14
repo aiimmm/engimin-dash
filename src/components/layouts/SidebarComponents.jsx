@@ -2,13 +2,16 @@
 
 import { NAVIGATION_MENU } from "@/commons/constants/Menu";
 import { apiClient } from "@/lib/api/client";
+import { USER_TYPES } from "@/lib/permissions";
+import { useUserType } from "@/lib/permissions/UserTypeProvider";
 import { cn, getInitials } from "@/lib/utils";
-import { ArrowRightBigIcon } from "@hugeicons/core-free-icons";
+import { ArrowRightBigIcon, Cancel02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ActivityIcon, BotIcon, LogOutIcon, ServerIcon } from "lucide-react";
+import { cva } from "class-variance-authority";
+import { BotIcon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from "../ui/breadcrumb";
@@ -46,6 +49,14 @@ export const Header = ({ className, user, ...props }) => {
   const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { activeUserType, isPreviewing, setPreview } = useUserType();
+
+  const roleLabel =
+    activeUserType === USER_TYPES.COMPLETED
+      ? "Team Completed"
+      : activeUserType === USER_TYPES.ALLOCATION
+        ? "Team Allocation"
+        : "Admin Engineering";
 
   async function logout() {
     setLoggingOut(true);
@@ -62,7 +73,7 @@ export const Header = ({ className, user, ...props }) => {
   return (
     <header
       className={cn(
-        "sticky top-0 z-10 flex items-center gap-2 border-b bg-sidebar text-sidebar-foreground pl-6 pr-5 py-3 backdrop-blur-2xl",
+        "sticky top-0 z-10 flex items-center gap-6 border-b bg-sidebar text-sidebar-foreground pl-6 pr-5 py-3 backdrop-blur-2xl",
         className,
       )}
       {...props}
@@ -79,17 +90,31 @@ export const Header = ({ className, user, ...props }) => {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+
+        {isPreviewing && (
+          <Badge className="hidden items-center md:flex">
+            Preview Mode: <span className="capitalize">{activeUserType?.toLowerCase()}</span>
+            <Button
+              onClick={() => setPreview(USER_TYPES.ADMIN)}
+              className="size-5 cursor-pointer"
+              title="Kembali ke Mode Admin"
+              size="icon"
+            >
+              <HugeiconsIcon icon={Cancel02Icon} />
+            </Button>
+          </Badge>
+        )}
       </div>
 
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <button className="gap-2 flex items-center">
+            <button className="gap-2 flex items-center cursor-pointer">
               <div className="hidden flex-col items-end gap-1.25 sm:flex">
                 <span className="text-right text-[12px] font-medium leading-none tracking-tight">
                   {user?.name}
                 </span>
-                <Badge className="h-4 px-1 py-0.5 text-[10px]">Admin Engineering</Badge>
+                <Badge className="h-4 px-1 py-0.5 text-[10px]">{roleLabel}</Badge>
               </div>
               <Avatar className="size-10">
                 <div className="bg-transparent p-0.5 aspect-square rounded-full border border-primary">
@@ -106,7 +131,7 @@ export const Header = ({ className, user, ...props }) => {
             <DropdownMenuLabel className="p-2 font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">Admin Engineering</p>
+                <p className="text-xs leading-none text-muted-foreground">{roleLabel}</p>
               </div>
             </DropdownMenuLabel>
           </DropdownMenuGroup>
@@ -162,6 +187,7 @@ export const Brand = () => {
 
 export const Navigation = () => {
   const pathname = usePathname();
+  const { isAllowed } = useUserType();
 
   const isActive = (href) => {
     if (!href) return false;
@@ -175,13 +201,26 @@ export const Navigation = () => {
 
   return (
     <>
-      {NAVIGATION_MENU.map((group) => (
-        <SidebarGroup key={group.groupLabel}>
-          <SidebarGroupLabel>{group.groupLabel}</SidebarGroupLabel>
-          <SidebarGroupContent className="flex flex-col gap-1">
-            {group.items
-              .filter((item) => item.isShow)
-              .map((item) => {
+      {NAVIGATION_MENU.map((group) => {
+        // Filter visible items according to isShow and userType route permissions
+        const visibleItems = group.items.filter((item) => {
+          if (!item.isShow) return false;
+          if (item.type === "Pages") {
+            return isAllowed(item.href);
+          }
+          return true;
+        });
+
+        // If all items in this group are hidden, don't render the empty section
+        if (visibleItems.length === 0) {
+          return null;
+        }
+
+        return (
+          <SidebarGroup key={group.groupLabel}>
+            <SidebarGroupLabel>{group.groupLabel}</SidebarGroupLabel>
+            <SidebarGroupContent className="flex flex-col gap-1">
+              {visibleItems.map((item) => {
                 const active = isActive(item.href);
 
                 // Pages
@@ -232,89 +271,80 @@ export const Navigation = () => {
 
                 return null;
               })}
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        );
+      })}
     </>
   );
 };
 
+const roleVariants = cva(
+  "inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+  {
+    variants: {
+      role: {
+        admin: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+        completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        allocation: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+        default: "border-border bg-muted text-muted-foreground",
+      },
+    },
+    defaultVariants: { role: "default" },
+  },
+);
+
+const dotVariants = cva("size-1.5 rounded-full", {
+  variants: {
+    role: {
+      admin: "bg-violet-500",
+      completed: "bg-emerald-500",
+      allocation: "bg-sky-500",
+      default: "bg-muted-foreground",
+    },
+  },
+  defaultVariants: { role: "default" },
+});
+
 export const Footer = () => {
-  const [status, setStatus] = useState("loading"); // "ready", "down", "loading"
-  const [ping, setPing] = useState(null);
+  const { activeUserType } = useUserType();
 
-  useEffect(() => {
-    let isMounted = true;
+  const role = activeUserType?.toLowerCase();
+  const variant = ["admin", "completed", "allocation"].includes(role) ? role : "default";
 
-    async function checkApiStatus() {
-      const startTime = performance.now();
-      try {
-        const response = await fetch("/api/health", { cache: "no-store" });
-        const endTime = performance.now();
-        const latency = Math.round(endTime - startTime);
-
-        if (response.ok) {
-          if (isMounted) {
-            setStatus("ready");
-            setPing(latency);
-          }
-        } else {
-          if (isMounted) {
-            setStatus("down");
-            setPing(null);
-          }
-        }
-      } catch (error) {
-        if (isMounted) {
-          setStatus("down");
-          setPing(null);
-        }
-      }
-    }
-
-    checkApiStatus();
-    const interval = setInterval(checkApiStatus, 10000); // Polling setiap 10 detik
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+  const label = !role
+    ? "Tidak diketahui"
+    : role === "completed" || role === "allocation"
+      ? `Team ${role}`
+      : role;
 
   return (
-    <div className="mx-2 mb-2 rounded-xl border bg-muted/30 p-3 text-xs shadow-xs transition-all hover:bg-muted/50">
-      <div className="flex flex-col items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-medium">
-          <ServerIcon className="size-3.5 text-foreground/70" />
-          <span>API Services</span>
-        </div>
-        {status === "loading" ? (
-          <span className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-foreground/40 animate-ping" />
-            Checking...
-          </span>
-        ) : status === "ready" ? (
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            {ping !== null && (
-              <span className="flex items-center gap-1 text-foreground/80">
-                <ActivityIcon className="size-3 text-foreground/50" />
-                Ping · {ping}ms
-              </span>
-            )}
-            <span className="flex items-center gap-1.5 rounded-md border bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300 px-1.5 py-0.5 font-sans font-medium">
-              <span className="size-1.5 rounded-full bg-green-700 dark:bg-green-300" />
-              Ready
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            <span className="flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 font-sans font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">
-              <span className="size-1.5 rounded-full bg-red-700 dark:bg-red-300" />
-              Down
-            </span>
-          </div>
+    <div
+      role="status"
+      aria-label={`Role: ${label}`}
+      title={label}
+      className={cn(
+        "mx-2 mb-2 flex items-center gap-2 justify-between rounded-xl border bg-muted/30 p-3 text-xs shadow-xs transition-colors hover:bg-muted/50",
+        // Sidebar mode ikon: sisakan hanya titik status
+        "group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0",
+      )}
+    >
+      <span className="text-[11px] font-semibold leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
+        Role User
+      </span>
+
+      <span
+        className={cn(
+          roleVariants({ role: variant }),
+          "group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0",
         )}
-      </div>
+      >
+        <span
+          aria-hidden="true"
+          className={cn(dotVariants({ role: variant }), "group-data-[collapsible=icon]:size-2.5")}
+        />
+        <span className="truncate capitalize group-data-[collapsible=icon]:hidden">{label}</span>
+      </span>
     </div>
   );
 };

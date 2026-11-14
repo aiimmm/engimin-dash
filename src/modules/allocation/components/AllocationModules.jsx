@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api/client";
+import { QUERY_STALE_MS, useAutoRefreshInterval } from "@/lib/config/refresh";
 import { cn } from "@/lib/utils";
 import { tomorrow } from "@/modules/shared/work-orders/lib";
 import {
@@ -101,6 +102,7 @@ export const AllocationModules = () => {
 
   // Query only fires when at least one cluster is selected
   const hasSelectedClusters = selectedClusters.length > 0;
+  const autoRefreshInterval = useAutoRefreshInterval();
 
   const query = useQuery({
     queryKey: ["allocation-workorders", dateRange.from, dateRange.to, selectedClusters],
@@ -143,7 +145,8 @@ export const AllocationModules = () => {
       };
     },
     enabled: hasSelectedClusters,
-    refetchInterval: hasSelectedClusters ? 180_000 : false,
+    staleTime: QUERY_STALE_MS,
+    refetchInterval: hasSelectedClusters ? autoRefreshInterval : false,
   });
 
   const allData = useMemo(() => query.data?.data || [], [query.data?.data]);

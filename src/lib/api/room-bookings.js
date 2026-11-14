@@ -89,17 +89,25 @@ const woHistoryCache = new Map();
  */
 export async function getRoomWoHistory(session, foRoomsId) {
   const userId = session?.user?.id || "";
-  const cacheKey = `hist:${userId}:${foRoomsId}:${jakartaTodayNumber()}`;
+  const cacheKey = `hist:v1000:${userId}:${foRoomsId}:${jakartaTodayNumber()}`;
   const cached = woHistoryCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
 
-  const { data } = await upstreamApi.post(
-    `/getListWOHistoryPerRoomV2?id=${encodeURIComponent(userId)}`,
-    { fo_rooms_id: Number(foRoomsId), limit: 50, offset: 0 },
-    { headers: authorizationHeaders(session) },
-  );
+  try {
+    const { data } = await upstreamApi.post(
+      `/getListWOHistoryPerRoomV2?id=${encodeURIComponent(userId)}`,
+      { fo_rooms_id: Number(foRoomsId), limit: 1000, offset: 0 },
+      { headers: authorizationHeaders(session) },
+    );
 
-  const items = Array.isArray(data?.data) ? data.data : [];
-  woHistoryCache.set(cacheKey, { value: items, expiresAt: Date.now() + CACHE_TTL_MS });
-  return items;
+    const items = Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.payload?.data)
+        ? data.payload.data
+        : [];
+    woHistoryCache.set(cacheKey, { value: items, expiresAt: Date.now() + CACHE_TTL_MS });
+    return items;
+  } catch {
+    return [];
+  }
 }

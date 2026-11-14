@@ -112,7 +112,7 @@ export const AgingTable = ({
       <div className="flex flex-col gap-1">
         <CardTitle className="flex items-center gap-2">
           <HugeiconsIcon icon={KeyframesDoubleAddIcon} className="size-5" />
-          Appointment Work Orders
+          Aging Work Orders
         </CardTitle>
         <CardDescription>
           Daftar work order yang dibuat dalam rentang 4 hari terakhir hingga kemarin dan belum

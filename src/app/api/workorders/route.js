@@ -28,6 +28,7 @@ import {
   checkHasPendingChurnWo,
   checkIsBreakContract,
   createWorkOrderPayload,
+  evaluatePendingChurnHistory,
   EXTRA_DEPARTMENT_QUERIES,
   hasScheduledActionTime,
   isExcludedAppointmentDepartment,
@@ -116,8 +117,8 @@ export async function GET(request) {
         ]);
 
         const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
-        const pendingChurnByRoom = new Map(
-          woHistories.map(([roomId, history]) => [roomId, checkHasPendingChurnWo(history)]),
+        const churnInfoByRoom = new Map(
+          woHistories.map(([roomId, history]) => [roomId, evaluatePendingChurnHistory(history)]),
         );
 
         const enrichedRows = rows.map((row) => {
@@ -127,7 +128,12 @@ export async function GET(request) {
           const matchedFuture = row.futureBookNumber
             ? summary?.bookingsByGenId?.[row.futureBookNumber]
             : null;
-          const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+          const churnInfo = churnInfoByRoom.get(row.foRoomsId) || {
+            hasActivePendingChurn: false,
+            hasCancelledPendingChurn: false,
+          };
+          const hasPendingChurnHistory = churnInfo.hasActivePendingChurn;
+          const isPendingChurnCancelled = churnInfo.hasCancelledPendingChurn;
 
           // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
           // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
@@ -146,12 +152,18 @@ export async function GET(request) {
             ciDate: matchedFuture?.checkinDate || row.ciDate,
             coDate: resolvedCoDate,
             hasPendingChurnHistory,
-            // Recompute isBreakContract dengan info Pending Churn
+            isPendingChurnCancelled,
+            // Recompute isBreakContract dengan info Pending Churn & status unit
             isBreakContract: checkIsBreakContract(
               row.breakContractDate,
               row.endContractDate,
               new Date(),
               hasPendingChurnHistory,
+              {
+                propertyStatus: row.propertyStatus || row.property_status,
+                hotelStatus: row.hotelStatus || row.hotel_status,
+                isPendingChurnCancelled,
+              },
             ),
           };
         });
@@ -374,8 +386,8 @@ export async function GET(request) {
         ]);
 
         const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
-        const pendingChurnByRoom = new Map(
-          woHistories.map(([roomId, history]) => [roomId, checkHasPendingChurnWo(history)]),
+        const churnInfoByRoom = new Map(
+          woHistories.map(([roomId, history]) => [roomId, evaluatePendingChurnHistory(history)]),
         );
 
         const enrichedRows = rows.map((row) => {
@@ -385,7 +397,12 @@ export async function GET(request) {
           const matchedFuture = row.futureBookNumber
             ? summary?.bookingsByGenId?.[row.futureBookNumber]
             : null;
-          const hasPendingChurnHistory = pendingChurnByRoom.get(row.foRoomsId) ?? false;
+          const churnInfo = churnInfoByRoom.get(row.foRoomsId) || {
+            hasActivePendingChurn: false,
+            hasCancelledPendingChurn: false,
+          };
+          const hasPendingChurnHistory = churnInfo.hasActivePendingChurn;
+          const isPendingChurnCancelled = churnInfo.hasCancelledPendingChurn;
 
           // Jika WO ini future reservation (punya futureBookNumber) tapi booking tidak
           // ditemukan di getDataBookingForWo (kosong atau hanya berisi current guest),
@@ -404,12 +421,18 @@ export async function GET(request) {
             ciDate: matchedFuture?.checkinDate || row.ciDate,
             coDate: resolvedCoDate,
             hasPendingChurnHistory,
-            // Recompute isBreakContract dengan info Pending Churn
+            isPendingChurnCancelled,
+            // Recompute isBreakContract dengan info Pending Churn & status unit
             isBreakContract: checkIsBreakContract(
               row.breakContractDate,
               row.endContractDate,
               new Date(),
               hasPendingChurnHistory,
+              {
+                propertyStatus: row.propertyStatus || row.property_status,
+                hotelStatus: row.hotelStatus || row.hotel_status,
+                isPendingChurnCancelled,
+              },
             ),
           };
         });
@@ -445,11 +468,31 @@ export async function GET(request) {
           .filter((roomId) => roomId !== "—" && Number.isFinite(Number(roomId))),
       ),
     ];
-    const summaries = await mapWithConcurrency(roomIds, 6, async (roomId) => [
-      roomId,
-      await getRoomBookingSummary(session, roomId),
+    const breakContractRoomIds = [
+      ...new Set(
+        scheduledRows
+          .filter((row) => Boolean(row.breakContractDate))
+          .map((row) => row.foRoomsId)
+          .filter((id) => Number.isFinite(Number(id))),
+      ),
+    ];
+
+    const [summaries, woHistories] = await Promise.all([
+      mapWithConcurrency(roomIds, 6, async (roomId) => [
+        roomId,
+        await getRoomBookingSummary(session, roomId).catch(() => null),
+      ]),
+      mapWithConcurrency(breakContractRoomIds, 6, async (roomId) => [
+        roomId,
+        await getRoomWoHistory(session, roomId).catch(() => []),
+      ]),
     ]);
-    const bookingByRoom = new Map(summaries);
+
+    const bookingByRoom = new Map(summaries.filter(([_, val]) => Boolean(val)));
+    const churnInfoByRoom = new Map(
+      woHistories.map(([roomId, history]) => [roomId, evaluatePendingChurnHistory(history)]),
+    );
+
     const rows = scheduledRows
       .map((row) => {
         const summary = bookingByRoom.get(row.foRoomsId);
@@ -458,6 +501,25 @@ export async function GET(request) {
 
         const formattedCheckinDate = booking?.formattedCheckinDate || null;
         const formattedCheckoutDate = booking?.formattedCheckoutDate || null;
+
+        const churnInfo = churnInfoByRoom.get(row.foRoomsId) || {
+          hasActivePendingChurn: false,
+          hasCancelledPendingChurn: false,
+        };
+        const hasPendingChurnHistory = churnInfo.hasActivePendingChurn;
+        const isPendingChurnCancelled = churnInfo.hasCancelledPendingChurn;
+
+        const isBreakContract = checkIsBreakContract(
+          row.breakContractDate,
+          row.endContractDate,
+          new Date(),
+          hasPendingChurnHistory,
+          {
+            propertyStatus: row.propertyStatus || row.property_status,
+            hotelStatus: row.hotelStatus || row.hotel_status,
+            isPendingChurnCancelled,
+          },
+        );
 
         return {
           ...row,
@@ -474,6 +536,9 @@ export async function GET(request) {
           formattedCheckoutDate,
           ciDate: formattedCheckinDate,
           coDate: formattedCheckoutDate,
+          hasPendingChurnHistory,
+          isPendingChurnCancelled,
+          isBreakContract,
         };
       })
       .filter((row) => {

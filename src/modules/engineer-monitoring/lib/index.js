@@ -4,6 +4,50 @@
 
 import { today } from "@/modules/shared/work-orders/lib";
 
+export const ALL_DICS = [
+  "Engineering",
+  "Operational",
+  "Unassigned / null",
+  "Traveliomart",
+  "CS",
+  "Technical Auditor",
+  "ORM",
+  "Admin Inventory",
+];
+
+export const DEFAULT_DICS = ["Engineering", "Operational", "Unassigned / null", "Traveliomart"];
+
+export function matchEngineerStatus(rowStatus, selectedStatuses) {
+  if (!selectedStatuses || selectedStatuses.length === 0) return true;
+  const status = String(rowStatus || "")
+    .toLowerCase()
+    .trim();
+  return selectedStatuses.some((sel) => {
+    const s = sel.toLowerCase();
+    if (s === "arrived") return status.includes("arriv");
+    if (s === "assign") return status.includes("assign") && !status.includes("unassign");
+    if (s === "pending") return status.includes("pending");
+    if (s === "rejected") return status.includes("reject") && !status.includes("guarantee");
+    if (s === "completed") return status.includes("complete");
+    return status.includes(s);
+  });
+}
+
+export function matchWoStatus(rowStatus, selectedStatuses) {
+  if (!selectedStatuses || selectedStatuses.length === 0) return true;
+  const status = String(rowStatus || "")
+    .toLowerCase()
+    .trim();
+  return selectedStatuses.some((sel) => {
+    const s = sel.toLowerCase();
+    if (s === "new") return status === "new" || status === "1";
+    if (s === "on progress")
+      return status.includes("progress") || status === "active" || status === "2";
+    if (s === "completed") return status.includes("complete") || status === "3" || status === "5";
+    return status.includes(s);
+  });
+}
+
 /**
  * Generate request payload for Completed Work Orders.
  * Status: ["3"] (Completed)
@@ -174,22 +218,22 @@ export function normalizeCompletedWoItem(item, idx = 0) {
 
   const note = item.note || item.remark || tracing.note || "—";
 
-  // Extract completedUser: prefer ctoList / tempExpense / paymentList, fallback to tracing / item
-  const firstCto = ctoList[0] || item.tempExpense?.[0] || item.paymentList?.[0] || {};
+  // Extract completedUser: use direct item fields (completed_user / updated_user), DO NOT take from tracingSchedule
   const completedUser =
-    firstCto.created_user ||
-    firstCto.createdUser ||
-    firstCto.created_by ||
-    firstCto.createdBy ||
-    item.complete_user ||
     item.completed_user ||
-    item.completeUser ||
     item.completedUser ||
-    tracing.complete_user ||
-    tracing.completed_user ||
-    item.created_user ||
-    item.createdUser ||
+    item.complete_user ||
+    item.completeUser ||
+    item.updated_user ||
+    item.updatedUser ||
     "—";
+
+  const completedDate =
+    item.completed_date || item.completedDate || item.updated_date || item.updatedDate || "—";
+
+  const updatedDate = item.updated_date || item.updatedDate || "—";
+
+  const firstCto = ctoList[0] || item.tempExpense?.[0] || item.paymentList?.[0] || {};
 
   // Extract paymentLinkTo: check engineeringPropertyFee.miscPayment.paymentLinkTo or miscPayment.paymentLinkTo
   const paymentLinkTo =
@@ -233,6 +277,8 @@ export function normalizeCompletedWoItem(item, idx = 0) {
     department: String(department).trim(),
     department_in_charge: String(department).trim(),
     actionDate,
+    completedDate: String(completedDate).trim(),
+    updatedDate: String(updatedDate).trim(),
     note,
     completedUser: String(completedUser).trim(),
     chargeTo: String(chargeTo).trim(),
@@ -240,11 +286,42 @@ export function normalizeCompletedWoItem(item, idx = 0) {
     ctoLength,
     ctoStatus,
     isCTOApproved,
-    ctoList,
-    tracingSchedule: Array.isArray(item.tracingSchedule)
-      ? item.tracingSchedule
-      : Array.isArray(item.tracing_schedule)
-        ? item.tracing_schedule
-        : [],
   };
 }
+
+// ============================================================================
+// CLUSTER SORTING: Sort from RI 1 up to largest RI number (RI 1, RI 2, ... RI 10)
+// ============================================================================
+export function extractRiNumber(clusterStr = "") {
+  const str = String(clusterStr || "").trim();
+  const match = str.match(/^RI\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+export function compareRiClusters(aCluster, bCluster) {
+  const strA = String(aCluster || "").trim();
+  const strB = String(bCluster || "").trim();
+
+  const numA = extractRiNumber(strA);
+  const numB = extractRiNumber(strB);
+
+  // Both have RI numbers: e.g. "RI 1 - ...", "RI 2 - ..."
+  if (numA !== null && numB !== null) {
+    if (numA !== numB) {
+      return numA - numB; // Ascending: RI 1, RI 2, RI 3 ...
+    }
+    return strA.localeCompare(strB, "id", { numeric: true, sensitivity: "base" });
+  }
+
+  // Clusters with RI prefix come before non-RI clusters
+  if (numA !== null && numB === null) return -1;
+  if (numA === null && numB !== null) return 1;
+
+  // Non-RI clusters sorted natural alphanumeric
+  return strA.localeCompare(strB, "id", { numeric: true, sensitivity: "base" });
+}
+
+export {
+  extractAdminCompletedNote,
+  isEngineerScheduleRejected,
+} from "../components/EngineerRejectedScheduleReport";

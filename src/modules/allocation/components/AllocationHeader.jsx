@@ -1,6 +1,7 @@
 "use client";
 
 import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
+import { LiveOperationBadge } from "@/components/elements/LiveOperationBadge";
 import { Typography } from "@/components/elements/Typography";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,23 +57,21 @@ export const AllocationHeader = ({
   };
 
   return (
-    <div className="flex flex-col items-start xl:flex-row xl:items-end xl:justify-between gap-4">
-      <div>
-        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
-          <span className="size-1.5 rounded-full bg-green-500" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Live Operation
-          </p>
-        </div>
-        <Typography as="h2" className="font-extrabold text-2xl sm:text-3xl">
+    // Mobile & tablet: judul di atas, toolbar di bawah (full width).
+    // Desktop (xl): judul kiri, toolbar kanan dalam satu baris.
+    <div className="flex w-full flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="min-w-0">
+        <LiveOperationBadge />
+        <Typography as="h2" className="text-xl font-extrabold sm:text-2xl lg:text-3xl">
           Allocation Engineer
         </Typography>
-        <Typography as="p" className="text-sm text-muted-foreground mt-1">
+        <Typography as="p" className="mt-1 text-xs text-muted-foreground sm:text-sm">
           Pilih cluster dan tanggal untuk menampilkan alokasian engineer.
         </Typography>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap-reverse">
+      {/* Mobile & tablet (di bawah lg): 2 baris (1: date + refresh icon, 2: cluster). lg ke atas: 1 baris. */}
+      <div className="flex w-full flex-col gap-2 lg:flex-row lg:items-center xl:w-auto">
         {/* Cluster Selector Dropdown from API */}
         <DropdownMenu
           onOpenChange={(open) => {
@@ -83,13 +82,13 @@ export const AllocationHeader = ({
             render={
               <Button
                 variant={selectedClusters.length > 0 ? "default" : "secondary"}
-                className="text-sm gap-1 flex-1 lg:flex-none"
+                className="w-full justify-center gap-1 text-sm max-lg:order-2 lg:w-auto"
               >
                 <HugeiconsIcon icon={MosqueLocationIcon} className="mr-0.5 size-4" />
                 Cluster
                 <Badge
                   variant={selectedClusters.length > 0 ? "secondary" : "default"}
-                  className="w-6.5 text-xs ml-1"
+                  className="ml-1 w-6.5 text-xs"
                 >
                   {selectedClusters.length || "All"}
                 </Badge>
@@ -98,10 +97,14 @@ export const AllocationHeader = ({
             }
           />
 
-          <DropdownMenuContent align="start" className="w-72 overflow-hidden p-0">
+          {/* Lebar dibatasi viewport supaya tidak keluar layar di mobile */}
+          <DropdownMenuContent
+            align="start"
+            className="w-[min(18rem,calc(100vw-2rem))] overflow-hidden p-0"
+          >
             {/* Header & Search */}
             <div className="sticky top-0 z-10 border-b p-2">
-              <InputGroup className="h-7 w-full">
+              <InputGroup className="h-8 w-full sm:h-7">
                 <InputGroupAddon>
                   <HugeiconsIcon icon={Search01Icon} className="size-4 text-muted-foreground" />
                 </InputGroupAddon>
@@ -117,7 +120,7 @@ export const AllocationHeader = ({
 
             {/* Cluster List */}
             <DropdownMenuGroup>
-              <div className="max-h-60 overflow-y-auto overscroll-contain p-1.5">
+              <div className="max-h-[50vh] overflow-y-auto overscroll-contain p-1.5 sm:max-h-60">
                 {isLoadingClusters ? (
                   <div className="space-y-2 p-2">
                     <Skeleton className="h-7 w-full rounded-md" />
@@ -131,7 +134,7 @@ export const AllocationHeader = ({
                       checked={selectedClusters.includes(c.id)}
                       onCheckedChange={() => toggleCluster(c.id)}
                       onSelect={(e) => e.preventDefault()}
-                      className="text-xs uppercase"
+                      className="py-2 text-xs uppercase sm:py-1.5"
                     >
                       <span className="min-w-0 truncate">{c.clusterName || `Cluster ${c.id}`}</span>
                     </DropdownMenuCheckboxItem>
@@ -167,21 +170,28 @@ export const AllocationHeader = ({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
+        {/* Baris 1 di mobile/tablet; di lg wrapper "menghilang" (contents) sehingga satu baris dengan cluster */}
+        <div className="flex items-center gap-2 max-lg:order-1 lg:contents">
+          <div className="min-w-0 flex-1 lg:flex-none *:w-full lg:*:w-auto">
+            <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
+          </div>
 
-        <Button
-          variant="default"
-          onClick={() => {
-            if (!query.isFetching) query.refetch();
-          }}
-          disabled={selectedClusters.length === 0}
-        >
-          <HugeiconsIcon
-            icon={Refresh01Icon}
-            className={`mr-0.5 size-4 ${query.isFetching ? "animate-spin" : ""}`}
-          />
-          <span>Refresh</span>
-        </Button>
+          <Button
+            variant="default"
+            aria-label="Refresh"
+            className="shrink-0 max-sm:aspect-square max-sm:px-0"
+            onClick={() => {
+              if (!query.isFetching) query.refetch();
+            }}
+            disabled={selectedClusters.length === 0}
+          >
+            <HugeiconsIcon
+              icon={Refresh01Icon}
+              className={`size-4 sm:mr-0.5 ${query.isFetching ? "animate-spin" : ""}`}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   createCreatedTodayPayload,
   createWorkOrderPayload,
   defaultConflictRange,
+  evaluatePendingChurnHistory,
   EXTRA_DEPARTMENT_QUERIES,
   EXCLUDED_CONFLICT_ARTICLES,
   generateAppointmentReport,
@@ -509,13 +510,13 @@ describe("work order adapters", () => {
     });
 
     const expected = [
-      "REPORT CLUSTER GRAND KAMALA LAGOON",
-      "WO Created Today (19/09/2026)",
+      "*REPORT CLUSTER GRAND KAMALA LAGOON*",
+      "*WO Created Today (19/09/2026)*",
       "- Total : 3",
-      "Department In Charge",
+      "*Department In Charge*",
       "- Engineering : 2",
       "- Traveliomart : 1",
-      "Room Status",
+      "*Room Status*",
       "- Major : 1",
       "- Minor : 2",
     ].join("\n");
@@ -701,6 +702,38 @@ describe("work order adapters", () => {
       });
       expect(pastWO.breakContractDate).toBe("2026-09-19 00:00:00");
       expect(pastWO.isBreakContract).toBe(true);
+    });
+
+    it("returns false if breakcontract_date is in the past BUT the unit has cancelled pending churn WO and active property/hotel status", () => {
+      const history = [
+        {
+          id: 1258395,
+          wo_no: "WO-CSTPM-2606010925000",
+          workorder_articles_id: 736,
+          remark:
+            "Dear Team Eng,\n\nMohon dibantu untuk pengecekan WO outstanding unit berikut karena unit akan di serah terima kan, di tunggu maximal dalam 3 hari dan bila lebih dari 3 hari akan dianggap tidak ada pending vendor.\n\nTerima kasih",
+          status: "Cancelled",
+          cancelled_user: "Sumardin",
+          create_source: "lioam (Pending Churn)",
+        },
+      ];
+
+      const churnStatus = evaluatePendingChurnHistory(history);
+      expect(churnStatus.hasActivePendingChurn).toBe(false);
+      expect(churnStatus.hasCancelledPendingChurn).toBe(true);
+
+      const isBreak = checkIsBreakContract(
+        "2026-05-26 00:00:00",
+        "2028-10-29 00:00:00",
+        baseToday,
+        churnStatus.hasActivePendingChurn,
+        {
+          propertyStatus: "Active",
+          hotelStatus: "active",
+          isPendingChurnCancelled: churnStatus.hasCancelledPendingChurn,
+        },
+      );
+      expect(isBreak).toBe(false);
     });
   });
 

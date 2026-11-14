@@ -13,23 +13,15 @@ export const AppointmentModules = () => {
     setDateRange,
     selectedClusters,
     setSelectedClusters,
-    isSyncing,
     query,
     rows,
     clusterFilteredRows,
     stats,
-    handleSyncSheet,
   } = useAppointmentData();
 
   return (
     <div className="space-y-4">
-      <AppointmentHeader
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        query={query}
-        onSyncSheet={() => handleSyncSheet(true)}
-        isSyncing={isSyncing}
-      />
+      <AppointmentHeader dateRange={dateRange} setDateRange={setDateRange} query={query} />
       <AppointmentStats rows={clusterFilteredRows} stats={stats} />
       <Separator className="my-6" />
       <AppointmentTable

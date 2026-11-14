@@ -76,17 +76,20 @@ export const AppointmentPreviewReports = ({ rows = [], selectedClusters = [], da
         <CardContent className="font-mono text-xs text-foreground">
           <pre className="whitespace-pre-wrap select-all font-mono leading-relaxed">
             {lines.map((line, idx) => {
-              if (line.startsWith("JAM ")) {
+              if (line.includes("*")) {
+                const parts = line.split(/(\*[^*]+\*)/g);
                 return (
-                  <span key={idx} className="font-bold text-foreground block">
-                    {line}
-                  </span>
-                );
-              }
-              if (line.startsWith("REPORT APPOINTMENT") || line.startsWith("TOTAL APPOINTMENT")) {
-                return (
-                  <span key={idx} className="font-bold text-foreground block">
-                    {line}
+                  <span key={idx} className="block">
+                    {parts.map((part, pIdx) => {
+                      if (part.startsWith("*") && part.endsWith("*")) {
+                        return (
+                          <strong key={pIdx} className="font-bold text-foreground">
+                            {part.slice(1, -1)}
+                          </strong>
+                        );
+                      }
+                      return <span key={pIdx}>{part}</span>;
+                    })}
                   </span>
                 );
               }
@@ -100,7 +103,7 @@ export const AppointmentPreviewReports = ({ rows = [], selectedClusters = [], da
         </CardContent>
       </Card>
 
-      <CardFooter>
+      <CardFooter className="px-0">
         <Button onClick={handleCopy} className="gap-2 w-full">
           {copied ? (
             <HugeiconsIcon icon={CheckCheckIcon} className="size-4.5" />

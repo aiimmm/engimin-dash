@@ -1,6 +1,7 @@
 "use client";
 
 import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
+import { LiveOperationBadge } from "@/components/elements/LiveOperationBadge";
 import { Typography } from "@/components/elements/Typography";
 import { Button } from "@/components/ui/button";
 import { Refresh01Icon } from "@hugeicons/core-free-icons";
@@ -10,12 +11,7 @@ export const ActionDatesHeader = ({ query, dateRange, setDateRange }) => {
   return (
     <div className="flex flex-col items-start xl:flex-row xl:items-end xl:justify-between gap-4">
       <div>
-        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
-          <span className="size-1.5 rounded-full bg-green-500" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Live Operation
-          </p>
-        </div>
+        <LiveOperationBadge />
         <Typography as="h2" className="font-extrabold">
           Action Dates Overview
         </Typography>

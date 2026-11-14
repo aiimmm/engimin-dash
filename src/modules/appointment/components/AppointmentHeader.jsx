@@ -1,20 +1,15 @@
 import { DatePickerWithRange } from "@/components/elements/DatePickerWithRange";
+import { LiveOperationBadge } from "@/components/elements/LiveOperationBadge";
 import { Typography } from "@/components/elements/Typography";
 import { Button } from "@/components/ui/button";
 import { Refresh01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { RefreshCwIcon } from "lucide-react";
 
-export const AppointmentHeader = ({ dateRange, setDateRange, query, onSyncSheet, isSyncing }) => {
+export const AppointmentHeader = ({ dateRange, setDateRange, query }) => {
   return (
     <div className="flex flex-col items-start lg:flex-row lg:items-end lg:justify-between gap-4">
       <div>
-        <div className="flex items-center gap-2 px-2 py-1 rounded-xl w-fit border bg-sidebar mb-3">
-          <span className="size-1.5 rounded-full bg-green-500" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Live Operation
-          </p>
-        </div>
+        <LiveOperationBadge />
         <Typography as="h2" className="font-extrabold">
           Appointment Overview
         </Typography>
@@ -24,10 +19,6 @@ export const AppointmentHeader = ({ dateRange, setDateRange, query, onSyncSheet,
       </div>
       <div className="flex flex-wrap gap-2">
         <DatePickerWithRange dateRange={dateRange} setDateRange={setDateRange} />
-        <Button variant="outline" onClick={onSyncSheet} disabled={isSyncing ? true : undefined}>
-          <RefreshCwIcon className={isSyncing ? "animate-spin" : ""} />
-          Sync Sheet
-        </Button>
         <Button
           variant="default"
           onClick={() => {

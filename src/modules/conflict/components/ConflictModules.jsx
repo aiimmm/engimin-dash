@@ -14,27 +14,15 @@ export const ConflictModules = () => {
     setSelectedClusters,
     selectedDics,
     setSelectedDics,
-    isSyncing,
-    isAutoRefreshPaused,
-    toggleAutoRefresh,
     query,
     rows,
     filteredRows,
     stats,
-    handleSyncSheet,
   } = useConflictData();
 
   return (
     <div className="space-y-4">
-      <ConflictHeader
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        query={query}
-        onSyncSheet={() => handleSyncSheet(true)}
-        isSyncing={isSyncing}
-        isAutoRefreshPaused={isAutoRefreshPaused}
-        onToggleAutoRefresh={toggleAutoRefresh}
-      />
+      <ConflictHeader dateRange={dateRange} setDateRange={setDateRange} query={query} />
       <ConflictStats stats={stats} />
       <Separator className="my-6" />
       <ConflictTable

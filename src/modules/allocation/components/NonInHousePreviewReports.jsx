@@ -57,6 +57,8 @@ export const NonInHousePreviewReports = ({
     return selectedClusters.join(", ");
   }, [selectedClusters]);
 
+  const previewLines = useMemo(() => (reportText ? reportText.split("\n") : []), [reportText]);
+
   const handleCopy = async () => {
     if (!reportText) {
       toast.warning("Tidak ada konten report tarik kunci untuk disalin.");
@@ -103,12 +105,35 @@ export const NonInHousePreviewReports = ({
       <Card>
         <CardContent className="font-mono text-xs text-foreground">
           <pre className="whitespace-pre-wrap select-all font-mono leading-relaxed">
-            {reportText}
+            {previewLines.map((line, idx) => {
+              if (line.includes("*")) {
+                const parts = line.split(/(\*[^*]+\*)/g);
+                return (
+                  <span key={idx} className="block">
+                    {parts.map((part, pIdx) => {
+                      if (part.startsWith("*") && part.endsWith("*")) {
+                        return (
+                          <strong key={pIdx} className="font-bold text-foreground">
+                            {part.slice(1, -1)}
+                          </strong>
+                        );
+                      }
+                      return <span key={pIdx}>{part}</span>;
+                    })}
+                  </span>
+                );
+              }
+              return (
+                <span key={idx} className="block">
+                  {line || "\u00A0"}
+                </span>
+              );
+            })}
           </pre>
         </CardContent>
       </Card>
 
-      <CardFooter>
+      <CardFooter className="px-0">
         <Button onClick={handleCopy} className="gap-2 w-full">
           {copied ? (
             <HugeiconsIcon icon={CheckmarkCircle02Icon} className="size-4 text-emerald-500" />

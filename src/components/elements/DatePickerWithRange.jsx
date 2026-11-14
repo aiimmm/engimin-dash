@@ -44,7 +44,7 @@ export function DatePickerWithRange({ dateRange, setDateRange, className }) {
     <Popover>
       <PopoverTrigger
         render={
-          <Button variant="outline" id="date-picker-range" className={`text-sm ${className ?? ""}`}>
+          <Button variant="outline" id="date-picker-range" className={`text-xs ${className ?? ""}`}>
             <HugeiconsIcon
               icon={Calendar02Icon}
               data-icon="inline-start"

@@ -15,7 +15,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { useMemo } from "react";
-import { DEFAULT_DICS, matchEngineerStatus, matchWoStatus } from "./EngineerTaskTable";
+import { DEFAULT_DICS, matchEngineerStatus, matchWoStatus } from "../lib";
 
 const MIN_COMPLETED_WO_PER_ENG = 15;
 
@@ -31,19 +31,12 @@ export const EngineerMonitoringStats = ({
   selectedWoStatuses = [],
 }) => {
   const stats = useMemo(() => {
-    // Filter tasks by selected clusters, DICs, engineer statuses, and WO statuses
+    // Filter tasks by selected clusters, engineer statuses, and WO statuses
     const targetTasks = tasks.filter((t) => {
       // Cluster filter
       if (selectedClusters.length > 0) {
         const c = String(t.cluster || t.cluster_name || "").trim();
         if (!selectedClusters.includes(c)) return false;
-      }
-      // DIC filter
-      if (selectedDics.length > 0) {
-        const rowDic = getDepartmentCategory(t.department || t.department_in_charge);
-        if (!selectedDics.includes(rowDic)) return false;
-      } else {
-        return false;
       }
       // Engineer status filter
       if (selectedEngStatuses.length > 0) {
@@ -94,14 +87,14 @@ export const EngineerMonitoringStats = ({
 
       const isPreComplete = isEngineerComplete && !isWoCompleted;
 
-      // 3. Pending & Reject from engineer_status
+      // 3. Pending & Reject from engineer_status (exclude Rejected WO Guarantee)
       const isPending = engStatus.includes("pending");
-      const isReject = engStatus.includes("reject");
+      const isReject = engStatus.includes("reject") && !engStatus.includes("guarantee");
 
       if (isWoCompleted) {
         completed += 1;
-      } else {
-        // Uncompleted tasks: tasks where WO status is not yet completed
+      } else if (!isReject) {
+        // Uncompleted tasks: tasks where WO status is not yet completed and not rejected
         uncompleted += 1;
       }
 
@@ -330,12 +323,11 @@ export const EngineerMonitoringStats = ({
       totalAverageCto = sumCto / totalInternalEngCount;
     }
 
-    // Use upstream summary metrics directly when default filters are active (no custom filter applied)
+    // Use upstream summary metrics directly when default filters are active (no custom cluster filter applied)
     const isDefaultFilters =
       selectedClusters.length === 0 &&
       selectedEngStatuses.length === 0 &&
-      selectedWoStatuses.length === 0 &&
-      (selectedDics.length === 0 || selectedDics.length >= 8);
+      selectedWoStatuses.length === 0;
 
     if (
       isDefaultFilters &&

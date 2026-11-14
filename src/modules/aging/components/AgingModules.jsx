@@ -14,26 +14,14 @@ export const AgingModules = () => {
     setSelectedClusters,
     selectedDics,
     setSelectedDics,
-    isSyncing,
-    isAutoRefreshPaused,
-    toggleAutoRefresh,
     query,
     rows,
     stats,
-    handleSyncSheet,
   } = useAgingData();
 
   return (
     <div className="space-y-4">
-      <AgingHeader
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        query={query}
-        onSyncSheet={() => handleSyncSheet(true)}
-        isSyncing={isSyncing}
-        isAutoRefreshPaused={isAutoRefreshPaused}
-        onToggleAutoRefresh={toggleAutoRefresh}
-      />
+      <AgingHeader dateRange={dateRange} setDateRange={setDateRange} query={query} />
       <AgingStats stats={stats} />
       <Separator className="my-6" />
       <AgingTable

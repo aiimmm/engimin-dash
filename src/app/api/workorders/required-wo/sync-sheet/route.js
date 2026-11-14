@@ -30,7 +30,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: result.success,
       spreadsheetName:
-        result.data?.spreadsheetName || process.env.REQUIRED_WO_SHEET_NAME || "Required WO",
+        result.data?.spreadsheetName || process.env.REQUIRED_WO_SHEET_NAME || undefined,
       sheetName: result.data?.sheetName || "",
       totalRows: result.data?.totalRows || 0,
       appointmentCount: result.data?.appointmentCount || 0,

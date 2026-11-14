@@ -41,7 +41,7 @@ export const AppointmentColumns = helper.columns([
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="text-xs px-0 font-semibold"
+        className="text-xs px-0 font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
       >
         <HugeiconsIcon icon={NoteIcon} className="mr-0.5 size-4 text-muted-foreground" />
         WO No & Note
@@ -101,7 +101,7 @@ export const AppointmentColumns = helper.columns([
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs px-0 font-semibold"
+          className="text-xs px-0 font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
         >
           <HugeiconsIcon
             icon={CalendarCheckOut01Icon}
@@ -123,7 +123,7 @@ export const AppointmentColumns = helper.columns([
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs px-0 font-semibold"
+          className="text-xs px-0 font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
         >
           <HugeiconsIcon icon={CalendarClockIcon} className="mr-0.5 size-4 text-muted-foreground" />
           Action Date
@@ -166,7 +166,7 @@ export const AppointmentColumns = helper.columns([
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="px-0 text-xs font-semibold"
+        className="px-0 text-xs font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
       >
         <HugeiconsIcon icon={ApartmentIcon} className="mr-0.5 size-4 text-muted-foreground" />
         GenID — Tower — Room
@@ -207,7 +207,7 @@ export const AppointmentColumns = helper.columns([
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="mx-auto px-0 text-xs font-semibold"
+            className="mx-auto px-0 text-xs font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
           >
             <HugeiconsIcon
               icon={AppleReminderIcon}
@@ -248,7 +248,7 @@ export const AppointmentColumns = helper.columns([
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-xs px-0 font-semibold"
+          className="text-xs px-0 font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
         >
           <HugeiconsIcon
             icon={UserSettings01Icon}
@@ -283,7 +283,7 @@ export const AppointmentColumns = helper.columns([
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="text-xs px-0 font-semibold"
+        className="text-xs px-0 font-semibold text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground active:bg-transparent focus-visible:ring-0 dark:hover:bg-transparent"
       >
         <HugeiconsIcon icon={DepartementIcon} className="mr-0.5 size-4 text-muted-foreground" />
         Department

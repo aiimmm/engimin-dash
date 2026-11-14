@@ -1,6 +1,7 @@
 "use client";
 
 import { apiClient } from "@/lib/api/client";
+import { QUERY_STALE_MS, useAutoRefreshInterval } from "@/lib/config/refresh";
 import { getDepartmentCategory, today } from "@/modules/shared/work-orders/lib";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -28,7 +29,7 @@ export function matchEngineerStatus(rowStatus, selectedStatuses) {
     if (s === "arrived") return status.includes("arriv");
     if (s === "assign") return status.includes("assign") && !status.includes("unassign");
     if (s === "pending") return status.includes("pending");
-    if (s === "rejected") return status.includes("reject");
+    if (s === "rejected") return status.includes("reject") && !status.includes("guarantee");
     if (s === "completed") return status.includes("complete");
     return status.includes(s);
   });
@@ -57,6 +58,8 @@ export const useEngineerMonitoringData = () => {
   const [selectedEngStatuses, setSelectedEngStatuses] = useState([]);
   const [selectedWoStatuses, setSelectedWoStatuses] = useState([]);
 
+  const refetchInterval = useAutoRefreshInterval();
+
   const query = useQuery({
     queryKey: ["engineer-monitoring", dateRange.from, dateRange.to],
     queryFn: async () => {
@@ -71,7 +74,8 @@ export const useEngineerMonitoringData = () => {
       });
       return res.data;
     },
-    refetchInterval: 180_000,
+    staleTime: QUERY_STALE_MS,
+    refetchInterval,
   });
 
   const summary = useMemo(() => query.data?.summary || {}, [query.data?.summary]);
@@ -100,12 +104,6 @@ export const useEngineerMonitoringData = () => {
       if (selectedClusters.length > 0) {
         const c = String(row.cluster || row.cluster_name || "").trim();
         if (!selectedClusters.includes(c)) return false;
-      }
-      if (selectedDics.length > 0) {
-        const rowDic = getDepartmentCategory(row.department || row.department_in_charge);
-        if (!selectedDics.includes(rowDic)) return false;
-      } else {
-        return false;
       }
       if (selectedEngStatuses.length > 0) {
         if (!matchEngineerStatus(row.engineer_status, selectedEngStatuses)) return false;
@@ -189,14 +187,7 @@ export const useEngineerMonitoringData = () => {
       total_engineer_completed: eng.total_engineer_completed,
       total_completed: eng.total_completed,
     }));
-  }, [
-    tasks,
-    rawEngineerTotals,
-    selectedClusters,
-    selectedDics,
-    selectedEngStatuses,
-    selectedWoStatuses,
-  ]);
+  }, [tasks, rawEngineerTotals, selectedClusters, selectedEngStatuses, selectedWoStatuses]);
 
   return {
     dateRange,

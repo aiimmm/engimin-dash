@@ -71,7 +71,7 @@ export function generateAppointmentReport(rows = [], options = {}) {
   sortedTimes.forEach((timeKey) => {
     const itemRows = groups.get(timeKey);
     const seenItems = new Set();
-    const blockLines = [`JAM ${timeKey}`];
+    const blockLines = [`*JAM ${timeKey}*`];
     let count = 0;
 
     itemRows.forEach((row) => {
@@ -94,7 +94,7 @@ export function generateAppointmentReport(rows = [], options = {}) {
   });
 
   const headerLines = [
-    `REPORT APPOINTMENT ${clusterTitle} (${dateLabel})`,
+    `*REPORT APPOINTMENT ${clusterTitle} (${dateLabel})*`,
     // `TOTAL APPOINTMENT : ${totalAppointments}`,
   ];
 
@@ -119,7 +119,11 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
   const dateLabel = formatCompactDate(date || today());
   const stats = calculateDicStats(rows);
 
-  const lines = [clusterTitleHeader, `WO Created Today (${dateLabel})`, `- Total : ${stats.Total}`];
+  const lines = [
+    `*${clusterTitleHeader}*`,
+    `*WO Created Today (${dateLabel})*`,
+    `- Total : ${stats.Total}`,
+  ];
 
   // Section 2: Department In Charge (exclude 0-value items)
   const dicItems = [
@@ -135,7 +139,7 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
 
   const activeDicItems = dicItems.filter((item) => item.count > 0);
   if (activeDicItems.length > 0) {
-    lines.push("Department In Charge");
+    lines.push("*Department In Charge*");
     activeDicItems.forEach((item) => {
       lines.push(`- ${item.label} : ${item.count}`);
     });
@@ -150,7 +154,7 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
 
   const activeRoomItems = roomItems.filter((item) => item.count > 0);
   if (activeRoomItems.length > 0) {
-    lines.push("Room Status");
+    lines.push("*Room Status*");
     activeRoomItems.forEach((item) => {
       lines.push(`- ${item.label} : ${item.count}`);
     });
@@ -161,3 +165,35 @@ export function generateCreatedTodayReport(rows = [], options = {}) {
 
 export { generateConflictReport } from "@/modules/conflict/lib";
 export { generateAgingReport } from "@/modules/aging/lib";
+
+// ============================================================================
+// CLUSTER SORTING: Sort from RI 1 up to largest RI number (RI 1, RI 2, ... RI 10)
+// ============================================================================
+export function extractRiNumber(clusterStr = "") {
+  const str = String(clusterStr || "").trim();
+  const match = str.match(/^RI\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+export function compareRiClusters(aCluster, bCluster) {
+  const strA = String(aCluster || "").trim();
+  const strB = String(bCluster || "").trim();
+
+  const numA = extractRiNumber(strA);
+  const numB = extractRiNumber(strB);
+
+  // Both have RI numbers: e.g. "RI 1 - ...", "RI 2 - ..."
+  if (numA !== null && numB !== null) {
+    if (numA !== numB) {
+      return numA - numB; // Ascending: RI 1, RI 2, RI 3 ...
+    }
+    return strA.localeCompare(strB, "id", { numeric: true, sensitivity: "base" });
+  }
+
+  // Clusters with RI prefix come before non-RI clusters
+  if (numA !== null && numB === null) return -1;
+  if (numA === null && numB !== null) return 1;
+
+  // Non-RI clusters sorted natural alphanumeric
+  return strA.localeCompare(strB, "id", { numeric: true, sensitivity: "base" });
+}

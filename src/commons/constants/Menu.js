@@ -1,3 +1,4 @@
+import { AutoRefreshSwitch } from "@/components/elements/AutoRefreshSwitch";
 import { LogoutButton } from "@/components/elements/LogoutButton";
 import { ThemeSwitch } from "@/components/elements/ThemeSwitch";
 import {
@@ -9,6 +10,7 @@ import {
   KeyframesDoubleAddIcon,
   MapsLocation01Icon,
   PackageAddIcon,
+  Settings05Icon,
 } from "@hugeicons/core-free-icons";
 
 export const NAVIGATION_MENU = [
@@ -86,35 +88,23 @@ export const NAVIGATION_MENU = [
       },
     ],
   },
-  // {
-  //   groupLabel: "Dangerous Workspace",
-  //   items: [
-  //     {
-  //       label: "Break Contract",
-  //       href: "/dashboard/dangerous/break-contract",
-  //       icon: SignatureIcon,
-  //       title: "Break Contract",
-  //       isShow: true,
-  //       type: "Pages",
-  //     },
-  //   ],
-  // },
-  // {
-  //   groupLabel: "Monitoring Workspace",
-  //   items: [
-  //     {
-  //       label: "Assigned Yesterday",
-  //       href: "/dashboard/monitoring/assigned-yesterday",
-  //       icon: LayoutDashboardIcon,
-  //       title: "Assigned Yesterday",
-  //       isShow: true,
-  //       type: "Pages",
-  //     },
-  //   ],
-  // },
   {
-    groupLabel: "Settings",
+    groupLabel: "Preferences",
     items: [
+      {
+        label: "Settings",
+        href: "/dashboard/settings",
+        icon: Settings05Icon,
+        title: "Settings",
+        isShow: true,
+        type: "Pages",
+      },
+      {
+        label: "Auto Refresh",
+        isShow: true,
+        type: "Component",
+        component: AutoRefreshSwitch,
+      },
       {
         label: "Dark Mode",
         isShow: true,
@@ -129,15 +119,4 @@ export const NAVIGATION_MENU = [
       },
     ],
   },
-  // {
-  //   groupLabel: "Settings",
-  //   items: [
-  //     {
-  //       label: "Logout",
-  //       isShow: true,
-  //       type: "Component",
-  //       component: LogoutButton,
-  //     },
-  //   ],
-  // },
 ];

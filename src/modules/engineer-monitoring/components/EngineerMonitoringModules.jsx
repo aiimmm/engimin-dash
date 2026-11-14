@@ -3,12 +3,12 @@
 import { Separator } from "@/components/ui/separator";
 import { useMemo } from "react";
 import { useEngineerMonitoringData } from "../hooks/useEngineerMonitoringData";
-import { ClusterAverageRankings } from "./ClusterAverageRankings";
-import { EngineerCompletedWoTable } from "./EngineerCompletedWoTable";
+import { compareRiClusters } from "../lib";
 import { EngineerMonitoringHeader } from "./EngineerMonitoringHeader";
 import { EngineerMonitoringStats } from "./EngineerMonitoringStats";
-import { EngineerTaskTable } from "./EngineerTaskTable";
+import { EngineerRejectedScheduleReport } from "./EngineerRejectedScheduleReport";
 import { EngineerTotalTaskTable } from "./EngineerTotalTaskTable";
+import { TopRankAdminCompletes } from "./TopRankAdminCompletes";
 
 export const EngineerMonitoringModules = () => {
   const {
@@ -19,9 +19,7 @@ export const EngineerMonitoringModules = () => {
     selectedDics,
     setSelectedDics,
     selectedEngStatuses,
-    setSelectedEngStatuses,
     selectedWoStatuses,
-    setSelectedWoStatuses,
     query,
     summary,
     tasks,
@@ -42,7 +40,7 @@ export const EngineerMonitoringModules = () => {
       const c = String(t.cluster || "").trim();
       if (c && c !== "—" && c !== "-") set.add(c);
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    return Array.from(set).sort(compareRiClusters);
   }, [tasks, completedTasks]);
 
   return (
@@ -78,35 +76,17 @@ export const EngineerMonitoringModules = () => {
         vendorEngineers={vendorEngineers}
       />
 
+      <Separator className="-mt-1 mb-6" />
+
+      <TopRankAdminCompletes completedTasks={completedTasks} isLoading={query.isLoading} />
+
       <Separator className="my-6" />
 
-      <ClusterAverageRankings
-        completedTasks={completedTasks}
-        query={query}
-        selectedClusters={selectedClusters}
-        selectedDics={selectedDics}
-      />
-
-      <EngineerTaskTable
+      <EngineerRejectedScheduleReport
         tasks={tasks}
-        query={query}
+        date={dateRange.from}
+        dateTo={dateRange.to}
         selectedClusters={selectedClusters}
-        onSelectedClustersChange={setSelectedClusters}
-        selectedDics={selectedDics}
-        onSelectedDicsChange={setSelectedDics}
-        selectedEngStatuses={selectedEngStatuses}
-        onSelectedEngStatusesChange={setSelectedEngStatuses}
-        selectedWoStatuses={selectedWoStatuses}
-        onSelectedWoStatusesChange={setSelectedWoStatuses}
-      />
-
-      <EngineerCompletedWoTable
-        completedTasks={completedTasks}
-        query={query}
-        selectedClusters={selectedClusters}
-        onSelectedClustersChange={setSelectedClusters}
-        selectedDics={selectedDics}
-        onSelectedDicsChange={setSelectedDics}
       />
     </div>
   );

@@ -59,8 +59,12 @@ const headerCellStyle = {
   border,
 };
 
-const dataCellStyle = (align) => ({
-  font: { name: "Arial", sz: 10 },
+const dataCellStyle = (align, fontColor = undefined) => ({
+  font: {
+    name: "Arial",
+    sz: 10,
+    ...(fontColor ? { color: { rgb: fontColor }, bold: true } : {}),
+  },
   alignment: { vertical: "center", horizontal: align, wrapText: false },
   border,
 });
@@ -80,9 +84,17 @@ export function exportWorkOrdersToExcel(rows, filename) {
 
   // PERUBAHAN: Menambahkan rowIndex pada map agar bisa dipakai untuk nomor urut
   const dataRows = rows.map((row, rowIndex) =>
-    EXPORT_COLUMNS.map((column) =>
-      toCell(column.getValue(row, rowIndex), dataCellStyle(column.align)),
-    ),
+    EXPORT_COLUMNS.map((column) => {
+      const val = column.getValue(row, rowIndex);
+      let fontColor = undefined;
+      if (
+        column.header === "Engineer" &&
+        (!val || String(val).trim().toLowerCase() === "unassigned")
+      ) {
+        fontColor = "DC2626";
+      }
+      return toCell(val, dataCellStyle(column.align, fontColor));
+    }),
   );
 
   const worksheet = XLSXStyle.utils.aoa_to_sheet([headerRow, ...dataRows]);
