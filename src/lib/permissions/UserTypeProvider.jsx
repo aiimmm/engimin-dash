@@ -40,7 +40,7 @@ async function fetchPermissionsFromApi() {
   }
 }
 
-/** Simpan permissions ke /api/permissions (Redis). Silent fail jika error. */
+/** Simpan permissions ke /api/permissions (Redis). */
 async function pushPermissionsToApi(newPermissions) {
   try {
     const res = await fetch("/api/permissions", {
@@ -48,9 +48,14 @@ async function pushPermissionsToApi(newPermissions) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newPermissions),
     });
-    return res.ok;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("[Permissions] Gagal sinkronisasi ke Redis:", res.status, err);
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.warn("[Permissions] Gagal sinkronisasi ke Redis:", err?.message);
+    console.error("[Permissions] Gagal sinkronisasi ke Redis:", err?.message);
     return false;
   }
 }
@@ -59,9 +64,14 @@ async function pushPermissionsToApi(newPermissions) {
 async function deletePermissionsFromApi() {
   try {
     const res = await fetch("/api/permissions", { method: "DELETE" });
-    return res.ok;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error("[Permissions] Gagal reset di Redis:", res.status, err);
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.warn("[Permissions] Gagal reset di Redis:", err?.message);
+    console.error("[Permissions] Gagal reset di Redis:", err?.message);
     return false;
   }
 }
@@ -120,7 +130,7 @@ export function UserTypeProvider({ children }) {
     }
     loadPermissions();
 
-    // ── 2. Event listeners untuk cross-tab sync
+    // ── 2. Event listeners untuk cross-tab & live sync
     const handlePermissionsChange = (e) => {
       if (e?.detail) {
         setPermissions(e.detail);
@@ -129,13 +139,29 @@ export function UserTypeProvider({ children }) {
       }
     };
 
+    const handleFocusOrVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        loadPermissions();
+      }
+    };
+
+    // Auto-refresh dari Redis setiap 30 detik
+    const syncInterval = setInterval(() => {
+      loadPermissions();
+    }, 30_000);
+
     window.addEventListener(PERMISSIONS_CHANGE_EVENT, handlePermissionsChange);
     window.addEventListener("storage", handlePermissionsChange);
+    window.addEventListener("focus", handleFocusOrVisible);
+    document.addEventListener("visibilitychange", handleFocusOrVisible);
 
     return () => {
       isSubscribed = false;
+      clearInterval(syncInterval);
       window.removeEventListener(PERMISSIONS_CHANGE_EVENT, handlePermissionsChange);
       window.removeEventListener("storage", handlePermissionsChange);
+      window.removeEventListener("focus", handleFocusOrVisible);
+      document.removeEventListener("visibilitychange", handleFocusOrVisible);
     };
   }, []);
 

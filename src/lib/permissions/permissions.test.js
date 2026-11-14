@@ -25,7 +25,10 @@ describe("User Types & Permissions logic", () => {
     expect(resolveUserTypeFromDomain("ri5.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri6.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
 
+    expect(resolveUserTypeFromDomain("teamcompleted.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
     expect(resolveUserTypeFromDomain("teamcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
+    expect(resolveUserTypeFromDomain("timcompleted.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
+    expect(resolveUserTypeFromDomain("timcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
     expect(resolveUserTypeFromDomain("admin.jossjiss.ai.id")).toBe(USER_TYPES.ADMIN);
 
     // Port or uppercase handling

@@ -31,7 +31,10 @@ export const DOMAIN_USER_TYPE_MAP = {
   "ri4.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri5.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri6.jossjiss.ai.id": USER_TYPES.ALLOCATION,
+  "teamcompleted.jossjiss.ai.id": USER_TYPES.COMPLETED,
   "teamcomplete.jossjiss.ai.id": USER_TYPES.COMPLETED,
+  "timcompleted.jossjiss.ai.id": USER_TYPES.COMPLETED,
+  "timcomplete.jossjiss.ai.id": USER_TYPES.COMPLETED,
   "admin.jossjiss.ai.id": USER_TYPES.ADMIN,
 };
 
@@ -191,12 +194,28 @@ export function resolveUserTypeFromDomain(hostname = "") {
     return DOMAIN_USER_TYPE_MAP[cleanHost];
   }
 
-  // 2. Pattern match for all RI subdomains (e.g. ri1 through ri6, ri7, etc.)
-  if (/^ri\d+(\.|$)/.test(cleanHost) || /^ri\d+\.jossjiss\.ai\.id$/.test(cleanHost)) {
+  // 2. Pattern match for all RI / allocation subdomains (e.g. ri1 through ri6, ri7, allocation)
+  if (
+    /^(ri\d+|allocation)(\.|$)/i.test(cleanHost) ||
+    /^(ri\d+|allocation)\.jossjiss\.ai\.id$/i.test(cleanHost)
+  ) {
     return USER_TYPES.ALLOCATION;
   }
 
-  // 3. Suffix match
+  // 3. Pattern match for all completed team subdomains (e.g. teamcompleted, teamcomplete, timcomplete, timcompleted, complete, completed)
+  if (
+    /^(tim|team)?complete(d)?(\.|$)/i.test(cleanHost) ||
+    /^(tim|team)?complete(d)?\.jossjiss\.ai\.id$/i.test(cleanHost)
+  ) {
+    return USER_TYPES.COMPLETED;
+  }
+
+  // 4. Pattern match for admin subdomains
+  if (/^admin(\.|$)/i.test(cleanHost) || /^admin\.jossjiss\.ai\.id$/i.test(cleanHost)) {
+    return USER_TYPES.ADMIN;
+  }
+
+  // 5. Suffix match
   for (const [domain, type] of Object.entries(DOMAIN_USER_TYPE_MAP)) {
     if (cleanHost === domain || cleanHost.endsWith(`.${domain}`)) {
       return type;

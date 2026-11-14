@@ -9,10 +9,36 @@ import {
   DEFAULT_USER_TYPE_PERMISSIONS,
   DEFAULT_FEATURES_PER_USER_TYPE,
   USER_TYPES,
+  getEffectiveUserType,
 } from "@/lib/permissions";
 import { getRedisClient, REDIS_PERMISSIONS_KEY } from "@/lib/redis";
 import { getSession } from "@/lib/auth/session";
 import { NextResponse } from "next/server";
+
+/**
+ * Verifikasi apakah request berasal dari Admin (berdasarkan domain atau session).
+ * @param {Request} request
+ * @param {Object|null} session
+ * @returns {boolean}
+ */
+function isAuthorizedAdmin(request, session) {
+  if (!session) return false;
+
+  // 1. Cek dari host header (misal: admin.jossjiss.ai.id atau localhost)
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+  const effectiveType = getEffectiveUserType(host);
+  if (effectiveType === USER_TYPES.ADMIN) {
+    return true;
+  }
+
+  // 2. Fallback: jika session memiliki userType ADMIN eksplisit
+  const userType = session.user?.userType || session.userType || "";
+  if (String(userType).toUpperCase() === USER_TYPES.ADMIN) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Merge permissions dari Redis dengan defaults supaya tidak ada key yang hilang.
@@ -39,14 +65,9 @@ function mergeWithDefaults(stored) {
 
 // ----------------------------------------------------------------------------
 // GET /api/permissions
-// Semua user yang sudah login bisa mengambil permissions (bukan hanya admin).
+// Mengambil permissions terbaru dari Redis (atau default jika belum ada/error)
 // ----------------------------------------------------------------------------
 export async function GET() {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
-
   const redis = getRedisClient();
 
   // Redis tidak terkonfigurasi → kembalikan default (mode lokal)
@@ -90,13 +111,7 @@ export async function GET() {
 // ----------------------------------------------------------------------------
 export async function POST(request) {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
-
-  // Verifikasi user type dari session (admin only)
-  const userType = session.user?.userType || session.userType || "";
-  if (String(userType).toUpperCase() !== USER_TYPES.ADMIN) {
+  if (!isAuthorizedAdmin(request, session)) {
     return NextResponse.json(
       { message: "Hanya Administrator yang dapat mengubah permissions." },
       { status: 403 },
@@ -129,7 +144,7 @@ export async function POST(request) {
   }
 
   try {
-    // Simpan sebagai JSON string ke Redis
+    // Simpan ke Redis
     await redis.set(REDIS_PERMISSIONS_KEY, JSON.stringify(body));
     return NextResponse.json({ success: true, message: "Permissions berhasil disinkronkan." });
   } catch (err) {
@@ -142,14 +157,9 @@ export async function POST(request) {
 // DELETE /api/permissions
 // Reset permissions ke default. Admin only.
 // ----------------------------------------------------------------------------
-export async function DELETE() {
+export async function DELETE(request) {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ message: "Sesi tidak valid." }, { status: 401 });
-  }
-
-  const userType = session.user?.userType || session.userType || "";
-  if (String(userType).toUpperCase() !== USER_TYPES.ADMIN) {
+  if (!isAuthorizedAdmin(request, session)) {
     return NextResponse.json(
       { message: "Hanya Administrator yang dapat mereset permissions." },
       { status: 403 },
