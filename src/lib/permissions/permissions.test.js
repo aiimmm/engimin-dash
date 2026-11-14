@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   CONTROLLABLE_ROUTES,
-  DEFAULT_USER_TYPE_PERMISSIONS,
-  DOMAIN_USER_TYPE_MAP,
   USER_TYPES,
   getEffectiveUserType,
   getEnvUserType,
@@ -27,7 +25,7 @@ describe("User Types & Permissions logic", () => {
     expect(resolveUserTypeFromDomain("ri5.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri6.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
 
-    expect(resolveUserTypeFromDomain("timcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
+    expect(resolveUserTypeFromDomain("teamcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
     expect(resolveUserTypeFromDomain("admin.jossjiss.ai.id")).toBe(USER_TYPES.ADMIN);
 
     // Port or uppercase handling
@@ -37,7 +35,7 @@ describe("User Types & Permissions logic", () => {
 
   it("getEffectiveUserType resolves from serverHost or env", () => {
     expect(getEffectiveUserType("ri2.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
-    expect(getEffectiveUserType("timcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
+    expect(getEffectiveUserType("teamcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
     expect(getEffectiveUserType("admin.jossjiss.ai.id")).toBe(USER_TYPES.ADMIN);
 
     // When host is unmapped, fallback to env variable or ADMIN

@@ -31,7 +31,7 @@ export const DOMAIN_USER_TYPE_MAP = {
   "ri4.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri5.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri6.jossjiss.ai.id": USER_TYPES.ALLOCATION,
-  "timcomplete.jossjiss.ai.id": USER_TYPES.COMPLETED,
+  "teamcomplete.jossjiss.ai.id": USER_TYPES.COMPLETED,
   "admin.jossjiss.ai.id": USER_TYPES.ADMIN,
 };
 
@@ -207,7 +207,7 @@ export function resolveUserTypeFromDomain(hostname = "") {
 
 /**
  * Resolves effective user type based on:
- * 1. Current domain/hostname (ri2.jossjiss.ai.id -> ALLOCATION, timcomplete.jossjiss.ai.id -> COMPLETED, admin.jossjiss.ai.id -> ADMIN)
+ * 1. Current domain/hostname (ri2.jossjiss.ai.id -> ALLOCATION, teamcomplete.jossjiss.ai.id -> COMPLETED, admin.jossjiss.ai.id -> ADMIN)
  * 2. NEXT_PUBLIC_USER_TYPE environment variable (if explicitly set)
  * 3. Fallback to ADMIN (e.g. localhost or unmapped domains)
  * @param {string} [serverHost] optional host passed from server-side headers
