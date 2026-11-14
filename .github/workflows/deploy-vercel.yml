@@ -1,0 +1,102 @@
+name: Deploy to Multiple Vercel Accounts
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-multi-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ${{ matrix.account }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - account: Vercel A
+            token_secret: VERCEL_TOKEN_ENGIMIN_000
+            org_secret: VERCEL_ORG_ID_ENGIMIN_000
+            project_secret: VERCEL_PROJECT_ID_ENGIMIN_000
+
+          - account: Vercel B
+            token_secret: VERCEL_TOKEN_ENGIMIN_001
+            org_secret: VERCEL_ORG_ID_ENGIMIN_001
+            project_secret: VERCEL_PROJECT_ID_ENGIMIN_001
+
+    env:
+      VERCEL_TOKEN: ${{ secrets[matrix.token_secret] }}
+      VERCEL_ORG_ID: ${{ secrets[matrix.org_secret] }}
+      VERCEL_PROJECT_ID: ${{ secrets[matrix.project_secret] }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate credentials
+        shell: bash
+        run: |
+          test -n "$VERCEL_TOKEN" || {
+            echo "Missing Vercel token"
+            exit 1
+          }
+
+          test -n "$VERCEL_ORG_ID" || {
+            echo "Missing Vercel organization ID"
+            exit 1
+          }
+
+          test -n "$VERCEL_PROJECT_ID" || {
+            echo "Missing Vercel project ID"
+            exit 1
+          }
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel configuration
+        run: |
+          vercel pull \
+            --yes \
+            --environment=production \
+            --token="$VERCEL_TOKEN"
+
+      - name: Build Next.js application
+        run: |
+          vercel build \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+      - name: Deploy to Vercel Production
+        run: |
+          vercel deploy \
+            --prebuilt \
+            --prod \
+            --token="$VERCEL_TOKEN"
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "Deployment successful: ${{ matrix.account }}"
+          echo "Project ID: $VERCEL_PROJECT_ID"

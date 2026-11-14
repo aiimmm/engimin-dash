@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { getSession } from "@/lib/auth/session";
+import { isFeatureAllowedServer } from "@/lib/permissions/server";
 import { safeError } from "@/lib/security";
 import { syncRequiredWorkorderToGoogleSheet } from "@/lib/services";
 import { NextResponse } from "next/server";
@@ -13,6 +14,17 @@ export async function POST(request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Session expired." }, { status: 401 });
+  }
+
+  const allowed = await isFeatureAllowedServer(request, "syncGoogleSheet");
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        message:
+          "Akses ditolak: Fitur Sinkronisasi Google Sheets dinonaktifkan oleh Administrator.",
+      },
+      { status: 403 },
+    );
   }
 
   try {
