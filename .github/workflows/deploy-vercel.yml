@@ -33,6 +33,11 @@ jobs:
             org_id: VERCEL_ORG_ID_ENGIMIN_001
             project_id: VERCEL_PROJECT_ID_ENGIMIN_001
 
+          - account: ENGIMIN 003
+            token: VERCEL_TOKEN_ENGIMIN_003
+            org_id: VERCEL_ORG_ID_ENGIMIN_003
+            project_id: VERCEL_PROJECT_ID_ENGIMIN_003
+
     env:
       VERCEL_TOKEN: ${{ secrets[matrix.token] }}
       VERCEL_ORG_ID: ${{ secrets[matrix.org_id] }}

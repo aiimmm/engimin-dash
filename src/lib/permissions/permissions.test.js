@@ -17,13 +17,16 @@ describe("User Types & Permissions logic", () => {
   });
 
   it("resolves user type automatically based on domain name", () => {
-    // Allocation subdomains: ri1 through ri6
+    // Allocation subdomains: ri1 through ri6 and teamallocation
     expect(resolveUserTypeFromDomain("ri1.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri2.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri3.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri4.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri5.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
     expect(resolveUserTypeFromDomain("ri6.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
+    expect(resolveUserTypeFromDomain("teamallocation.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
+    expect(resolveUserTypeFromDomain("timallocation.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
+    expect(resolveUserTypeFromDomain("allocation.jossjiss.ai.id")).toBe(USER_TYPES.ALLOCATION);
 
     expect(resolveUserTypeFromDomain("teamcompleted.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);
     expect(resolveUserTypeFromDomain("teamcomplete.jossjiss.ai.id")).toBe(USER_TYPES.COMPLETED);

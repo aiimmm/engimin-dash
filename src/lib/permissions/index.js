@@ -31,6 +31,8 @@ export const DOMAIN_USER_TYPE_MAP = {
   "ri4.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri5.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "ri6.jossjiss.ai.id": USER_TYPES.ALLOCATION,
+  "teamallocation.jossjiss.ai.id": USER_TYPES.ALLOCATION,
+  "timallocation.jossjiss.ai.id": USER_TYPES.ALLOCATION,
   "teamcompleted.jossjiss.ai.id": USER_TYPES.COMPLETED,
   "teamcomplete.jossjiss.ai.id": USER_TYPES.COMPLETED,
   "timcompleted.jossjiss.ai.id": USER_TYPES.COMPLETED,
@@ -194,10 +196,10 @@ export function resolveUserTypeFromDomain(hostname = "") {
     return DOMAIN_USER_TYPE_MAP[cleanHost];
   }
 
-  // 2. Pattern match for all RI / allocation subdomains (e.g. ri1 through ri6, ri7, allocation)
+  // 2. Pattern match for all RI / allocation subdomains (e.g. ri1 through ri6, ri7, teamallocation, timallocation, allocation)
   if (
-    /^(ri\d+|allocation)(\.|$)/i.test(cleanHost) ||
-    /^(ri\d+|allocation)\.jossjiss\.ai\.id$/i.test(cleanHost)
+    /^(ri\d+|(tim|team)?allocation)(\.|$)/i.test(cleanHost) ||
+    /^(ri\d+|(tim|team)?allocation)\.jossjiss\.ai\.id$/i.test(cleanHost)
   ) {
     return USER_TYPES.ALLOCATION;
   }
