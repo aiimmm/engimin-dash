@@ -735,10 +735,52 @@ describe("work order adapters", () => {
       );
       expect(isBreak).toBe(false);
     });
+
+    it("returns true if breakcontract_date equals endcontract_date and date has passed", () => {
+      const isBreak = checkIsBreakContract(
+        "2026-11-07 00:00:00",
+        "2026-11-07 00:00:00",
+        new Date("2026-11-10T00:00:00Z"),
+      );
+      expect(isBreak).toBe(true);
+    });
+
+    it("returns true for inactive units even when pending churn was cancelled", () => {
+      const isBreak = checkIsBreakContract(
+        "2026-08-10 00:00:00",
+        "2026-08-10 00:00:00",
+        new Date("2026-08-15T00:00:00Z"),
+        false,
+        {
+          propertyStatus: "Inactive",
+          hotelStatus: "inactive",
+          isPendingChurnCancelled: true,
+        },
+      );
+      expect(isBreak).toBe(true);
+    });
   });
 
   describe("getBreakContractNotice rules", () => {
     const today = new Date("2026-10-31T12:00:00");
+
+    it("returns broken notice if break contract date is today even with future endContractDate and no churn WO", () => {
+      const notice = getBreakContractNotice(
+        {
+          breakContractDate: "2026-11-15 00:00:00",
+          endContractDate: "2027-02-28 00:00:00",
+          propertyStatus: "Active",
+          hotelStatus: "active",
+          hasPendingChurnHistory: false,
+        },
+        new Date("2026-11-15T12:00:00"),
+      );
+      expect(notice).toEqual({
+        type: "broken",
+        label: "Break Contract:",
+        date: "15-11-2026",
+      });
+    });
 
     it("returns upcoming notice if break contract date is tomorrow (diffDays === 1)", () => {
       const notice = getBreakContractNotice({ breakContractDate: "2026-11-01 00:00:00" }, today);
@@ -772,7 +814,7 @@ describe("work order adapters", () => {
       expect(notice).toBeNull();
     });
 
-    it("returns null if breakcontract_date equals endcontract_date (normal checkout)", () => {
+    it("returns notice even if breakcontract_date equals endcontract_date", () => {
       const notice = getBreakContractNotice(
         {
           breakContractDate: "2026-11-01 00:00:00",
@@ -780,7 +822,11 @@ describe("work order adapters", () => {
         },
         today,
       );
-      expect(notice).toBeNull();
+      expect(notice).toEqual({
+        type: "upcoming",
+        label: "Akan break contract pada:",
+        date: "01-11-2026",
+      });
     });
 
     it("returns broken notice with date 'Yes' if isBreakContract is true without valid date", () => {

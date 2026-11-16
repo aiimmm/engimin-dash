@@ -448,6 +448,7 @@ export function checkIsBreakContract(
   )
     .trim()
     .toLowerCase();
+  const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
   const isUnitExplicitlyActive = propStatus === "active" && hotelStatus === "active";
 
   const isPendingChurnCancelled = Boolean(
@@ -455,8 +456,9 @@ export function checkIsBreakContract(
   );
 
   // Jika WO Pending Churn ("Dear Team Eng") sudah dicancel:
-  // Unit TIDAK termasuk break contract (proses break contract dibatalkan)
-  if (isPendingChurnCancelled && !hasPendingChurnHistory) {
+  // Pembatalan break contract HANYA berlaku jika unit masih ACTIVE.
+  // Jika unit sudah INACTIVE, unit tetap terhitung sebagai Break Contract!
+  if (!isInactive && isPendingChurnCancelled && !hasPendingChurnHistory) {
     return false;
   }
 
@@ -472,30 +474,6 @@ export function checkIsBreakContract(
 
   const breakDate = parseToMidnight(str);
   if (!breakDate) return false;
-
-  // Jika bukan unit inactive, tidak ada pending churn aktif,
-  // dan tanggal breakcontract_date sudah lewat di masa lalu sementara endcontract_date masih di masa depan:
-  // Ini adalah tanggal break contract lama yang dibatalkan/sudah di-cancel
-  const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
-  if (!isInactive && !hasPendingChurnHistory && endDateValue) {
-    const endDate = parseToMidnight(endDateValue);
-    const now = baseDate instanceof Date ? baseDate : new Date(baseDate);
-    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (
-      breakDate &&
-      endDate &&
-      breakDate.getTime() < todayMidnight.getTime() &&
-      endDate.getTime() > todayMidnight.getTime()
-    ) {
-      return false;
-    }
-  }
-
-  // Kondisi 3: jika breakcontract_date == endcontract_date → bukan break, itu CO normal
-  if (endDateValue) {
-    const endDate = parseToMidnight(endDateValue);
-    if (endDate && breakDate.getTime() === endDate.getTime()) return false;
-  }
 
   // Kondisi B (override): ada WO Pending Churn aktif di history room
   // → break contract meskipun tanggalnya belum lewat
@@ -523,10 +501,13 @@ export function getBreakContractNotice(data, baseDate = new Date()) {
   const hotelStatus = String(data.hotel_status || data.hotelStatus || "")
     .trim()
     .toLowerCase();
+  const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
   const isUnitExplicitlyActive = propStatus === "active" && hotelStatus === "active";
 
-  // Jika WO Pending Churn ("Dear Team Eng") sudah dicancel, maka BUKAN break contract
-  if (data.isPendingChurnCancelled && !data.hasPendingChurnHistory) {
+  // Jika WO Pending Churn ("Dear Team Eng") sudah dicancel:
+  // HANYA batalkan status jika unit masih ACTIVE.
+  // Jika unit sudah INACTIVE, tetap dianggap Break Contract!
+  if (!isInactive && data.isPendingChurnCancelled && !data.hasPendingChurnHistory) {
     return null;
   }
 
@@ -545,13 +526,6 @@ export function getBreakContractNotice(data, baseDate = new Date()) {
   if (hasValidBreakDateStr) {
     const targetBreakDate = parseToMidnight(rawBreakDate);
     if (targetBreakDate) {
-      if (rawEndDate) {
-        const targetEndDate = parseToMidnight(rawEndDate);
-        if (targetEndDate && targetBreakDate.getTime() === targetEndDate.getTime()) {
-          return null;
-        }
-      }
-
       const now = baseDate instanceof Date ? baseDate : new Date(baseDate);
       const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -565,17 +539,6 @@ export function getBreakContractNotice(data, baseDate = new Date()) {
           label: "Akan break contract pada:",
           date: fmtDate(rawBreakDate),
         };
-      }
-
-      // Jika bukan unit inactive, tidak ada pending churn aktif,
-      // dan break contract date di masa lalu (diffDays <= 0) sementara end contract date masih di masa depan:
-      // Ini adalah bekas tanggal break contract lama yang dibatalkan/di-cancel!
-      const isInactive = propStatus === "inactive" || hotelStatus === "inactive";
-      if (diffDays <= 0 && !isInactive && !data.hasPendingChurnHistory && rawEndDate) {
-        const targetEndDate = parseToMidnight(rawEndDate);
-        if (targetEndDate && targetEndDate.getTime() > todayMidnight.getTime()) {
-          return null;
-        }
       }
 
       // Sudah masuk tanggal break contract atau lewat (diffDays <= 0)
