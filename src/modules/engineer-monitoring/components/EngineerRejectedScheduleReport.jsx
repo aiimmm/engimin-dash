@@ -219,7 +219,7 @@ export function generateRejectedScheduleTextReport(
   if (!tasks || tasks.length === 0) return "";
 
   const dateLabel = formatReportDateTitle(date || today());
-  const separator = "-------------------------------------------------";
+  const separator = "----------------------------------------------------------------------------";
 
   // Group tasks by cluster
   const clusterMap = new Map();

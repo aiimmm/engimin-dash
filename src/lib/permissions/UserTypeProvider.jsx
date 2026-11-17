@@ -25,19 +25,34 @@ const emptySubscribe = () => () => {};
 const UserTypeContext = createContext(null);
 
 // ----------------------------------------------------------------------------
-// Helpers: Redis API calls
+// Helpers: Redis API calls (with in-flight deduplication & cache TTL)
 // ----------------------------------------------------------------------------
+
+export const STORAGE_KEY_LAST_SYNC = "engimin_permissions_last_sync";
+const SYNC_CACHE_TTL_MS = 10 * 60 * 1000; // 10 menit TTL cache (mencegah spam request ke /api/permissions)
+
+let inFlightFetchPromise = null;
 
 /** Ambil permissions dari /api/permissions (Redis). Null jika gagal. */
 async function fetchPermissionsFromApi() {
-  try {
-    const res = await fetch("/api/permissions", { cache: "no-store" });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.permissions || null;
-  } catch {
-    return null;
+  if (inFlightFetchPromise) {
+    return inFlightFetchPromise;
   }
+
+  inFlightFetchPromise = (async () => {
+    try {
+      const res = await fetch("/api/permissions", { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.permissions || null;
+    } catch {
+      return null;
+    } finally {
+      inFlightFetchPromise = null;
+    }
+  })();
+
+  return inFlightFetchPromise;
 }
 
 /** Simpan permissions ke /api/permissions (Redis). */
@@ -110,27 +125,44 @@ export function UserTypeProvider({ children }) {
   useEffect(() => {
     let isSubscribed = true;
 
-    // ── 1. Load permissions: coba dari Redis dulu, fallback localStorage
-    async function loadPermissions() {
+    // ── 1. Load permissions: prioritaskan cache localStorage, ambil dari Redis jika cache stale (> 10 mnt)
+    async function initPermissions() {
+      let lastSync = 0;
+      try {
+        const storedTime = window.localStorage.getItem(STORAGE_KEY_LAST_SYNC);
+        if (storedTime) lastSync = parseInt(storedTime, 10) || 0;
+      } catch {}
+
+      const now = Date.now();
+      const isCacheFresh = now - lastSync < SYNC_CACHE_TTL_MS;
+
+      // Jika cache di localStorage masih fresh (< 10 menit), gunakan langsung tanpa HTTP call
+      if (isCacheFresh) {
+        setPermissions(getStoredPermissions());
+        setRedisActive(true);
+        return;
+      }
+
+      // Cache kadaluarsa atau belum ada -> fetch dari Redis
       const remote = await fetchPermissionsFromApi();
       if (!isSubscribed) return;
 
       if (remote) {
-        // Redis berhasil → pakai remote, update localStorage sebagai cache
         setPermissions(remote);
         setRedisActive(true);
         try {
-          saveStoredPermissions(remote); // sync ke localStorage (silent)
+          saveStoredPermissions(remote);
+          window.localStorage.setItem(STORAGE_KEY_LAST_SYNC, String(Date.now()));
         } catch {}
       } else {
-        // Redis gagal / tidak terkonfigurasi → pakai localStorage
         setPermissions(getStoredPermissions());
         setRedisActive(false);
       }
     }
-    loadPermissions();
 
-    // ── 2. Event listeners untuk cross-tab & live sync
+    initPermissions();
+
+    // ── 2. Event listeners untuk cross-tab sync realtime lokal (0 HTTP request)
     const handlePermissionsChange = (e) => {
       if (e?.detail) {
         setPermissions(e.detail);
@@ -139,29 +171,13 @@ export function UserTypeProvider({ children }) {
       }
     };
 
-    const handleFocusOrVisible = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        loadPermissions();
-      }
-    };
-
-    // Auto-refresh dari Redis setiap 30 detik
-    const syncInterval = setInterval(() => {
-      loadPermissions();
-    }, 30_000);
-
     window.addEventListener(PERMISSIONS_CHANGE_EVENT, handlePermissionsChange);
     window.addEventListener("storage", handlePermissionsChange);
-    window.addEventListener("focus", handleFocusOrVisible);
-    document.addEventListener("visibilitychange", handleFocusOrVisible);
 
     return () => {
       isSubscribed = false;
-      clearInterval(syncInterval);
       window.removeEventListener(PERMISSIONS_CHANGE_EVENT, handlePermissionsChange);
       window.removeEventListener("storage", handlePermissionsChange);
-      window.removeEventListener("focus", handleFocusOrVisible);
-      document.removeEventListener("visibilitychange", handleFocusOrVisible);
     };
   }, []);
 
@@ -198,6 +214,9 @@ export function UserTypeProvider({ children }) {
   const persistPermissions = (newPermissions) => {
     // 1. Update localStorage (immediate, offline-safe)
     saveStoredPermissions(newPermissions);
+    try {
+      window.localStorage.setItem(STORAGE_KEY_LAST_SYNC, String(Date.now()));
+    } catch {}
     // 2. Sinkronkan ke Redis (async, non-blocking)
     pushPermissionsToApi(newPermissions).then((ok) => {
       if (!ok && redisActive) {
@@ -280,8 +299,26 @@ export function UserTypeProvider({ children }) {
     if (!isAdmin) return;
     resetStoredPermissions();
     setPermissions(DEFAULT_USER_TYPE_PERMISSIONS);
+    try {
+      window.localStorage.removeItem(STORAGE_KEY_LAST_SYNC);
+    } catch {}
     // Reset di Redis juga
     deletePermissionsFromApi();
+  };
+
+  /** Ambil paksa permissions terbaru dari Redis (misal saat ditekan tombol refresh manual) */
+  const refreshFromRedis = async () => {
+    const remote = await fetchPermissionsFromApi();
+    if (remote) {
+      setPermissions(remote);
+      setRedisActive(true);
+      try {
+        saveStoredPermissions(remote);
+        window.localStorage.setItem(STORAGE_KEY_LAST_SYNC, String(Date.now()));
+      } catch {}
+      return true;
+    }
+    return false;
   };
 
   const value = {
@@ -298,6 +335,7 @@ export function UserTypeProvider({ children }) {
     toggleFeature,
     setRoutesForType,
     resetAll,
+    refreshFromRedis,
     setPreview,
     mounted,
     redisActive,
@@ -326,6 +364,7 @@ export function useUserType() {
       toggleFeature: () => {},
       setRoutesForType: () => {},
       resetAll: () => {},
+      refreshFromRedis: async () => false,
       setPreview: () => {},
       mounted: false,
       redisActive: false,
